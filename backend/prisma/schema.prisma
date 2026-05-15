@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+model Region {
+  id          String       @id @default(uuid())
+  name        String
+  code        String       @unique
+  type        RegionType
+  lat         Float
+  lng         Float
+  parentId    String?
+  parent      Region?      @relation("RegionHierarchy", fields: [parentId], references: [id])
+  children    Region[]     @relation("RegionHierarchy")
+  datasets    Dataset[]
+  alerts      Alert[]
+  predictions Prediction[]
+
+  @@map("regions")
+}
+
+enum RegionType {
+  DEPARTAMENTO
+  MUNICIPIO
+}
+
+model Dataset {
+  id        String       @id @default(uuid())
+  name      String
+  source    String
+  category  DataCategory
+  filePath  String?
+  url       String?
+  regionId  String?
+  region    Region?      @relation(fields: [regionId], references: [id])
+  fetchedAt DateTime     @default(now())
+  records   DataRecord[]
+
+  @@map("datasets")
+}
+
+enum DataCategory {
+  CLIMA
+  AGRICULTURA
+  SUELO
+  AGUA
+  RIESGO
+  SOCIOECONOMICO
+}
+
+model DataRecord {
+  id        String   @id @default(uuid())
+  datasetId String
+  dataset   Dataset  @relation(fields: [datasetId], references: [id])
+  date      DateTime
+  variables Json
+  createdAt DateTime @default(now())
+
+  @@map("data_records")
+}
+
+model Prediction {
+  id         String         @id @default(uuid())
+  regionId   String
+  region     Region         @relation(fields: [regionId], references: [id])
+  model      String
+  type       PredictionType
+  riskLevel  RiskLevel
+  confidence Float
+  variables  Json
+  createdAt  DateTime       @default(now())
+
+  @@map("predictions")
+}
+
+enum PredictionType {
+  SEQUIA
+  INUNDACION
+  HELADA
+  PLAGAS
+  RENDIMIENTO_CULTIVO
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Alert {
+  id         String    @id @default(uuid())
+  regionId   String
+  region     Region    @relation(fields: [regionId], references: [id])
+  type       AlertType
+  severity   RiskLevel
+  message    String
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@map("alerts")
+}
+
+enum AlertType {
+  CLIMATICA
+  AGRICOLA
+  HIDROLOGICA
+  AMBIENTAL
+}
