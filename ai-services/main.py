@@ -1,7 +1,6 @@
 """
 AgroVision AI — AI Services v0.2.0
 """
-
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -9,6 +8,8 @@ from typing import Optional
 from enum import Enum
 import numpy as np
 import uvicorn
+from services.nasa_service import get_nasa_climate
+
 import os
 
 from data_pipeline import (
@@ -189,6 +190,11 @@ async def dane_lookup(nombre: str):
 @app.get("/pipeline/{departamento}", tags=["Pipeline"])
 async def pipeline(departamento: str, cultivo: str = Query("MAIZ")):
     return await fetch_full_pipeline(departamento=departamento.upper(), cultivo=cultivo.upper())
+
+@app.get("/clima/nasa/{departamento}")
+def nasa_climate(departamento: str, days: int = 30):
+
+    return get_nasa_climate(departamento, days)
 
 @app.get("/departamentos", tags=["Regiones"])
 def departamentos():
