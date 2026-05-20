@@ -28,6 +28,7 @@ export const NAV_ITEMS = [
   { id: "overview", label: "Resumen", icon: "◈" },
   { id: "clima", label: "Clima", icon: "◉" },
   { id: "agricola", label: "Agrícola", icon: "◐" },
+  { id: "mapa",       label: "Mapa",       icon: "◎" },
   { id: "prediccion", label: "Predicción", icon: "◑" },
 ] as const;
 
