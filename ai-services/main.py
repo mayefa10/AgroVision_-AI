@@ -1,6 +1,8 @@
+
 """
 AgroVision AI — AI Services v0.2.0
 """
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -8,8 +10,6 @@ from typing import Optional
 from enum import Enum
 import numpy as np
 import uvicorn
-from services.nasa_service import get_nasa_climate
-
 import os
 
 from data_pipeline import (
@@ -21,6 +21,9 @@ from data_pipeline import (
     DEPARTAMENTOS,
 )
 from dane_module import fetch_divipola_geo, fetch_dane_municipios_join, lookup_municipio
+from ml_model import train_model, predict_rendimiento
+
+# ── App ───────────────────────────────────────────────────
 
 app = FastAPI(
     title="AgroVision AI — Services",
@@ -43,6 +46,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Schemas ───────────────────────────────────────────────
 
 class RiskLevel(str, Enum):
     LOW      = "low"
@@ -73,6 +78,16 @@ class PredictRiskResponse(BaseModel):
     message:         str
     variables_used:  dict
 
+class RendimientoRequest(BaseModel):
+    departamento:  str   = "ANTIOQUIA"
+    cultivo:       str   = "MAIZ"
+    grupo_cultivo: str   = "CEREALES Y LEGUMINOSAS"
+    area_sembrada: float = 100.0
+    anio:          int   = 2024
+    periodo:       int   = 1
+
+# ── Lógica ML heurístico ──────────────────────────────────
+
 def calculate_risk(req: PredictRiskRequest):
     score = 0.0
     if req.prediction_type == PredictionType.SEQUIA:
@@ -98,6 +113,8 @@ def calculate_risk(req: PredictRiskRequest):
     confidence = round(0.70 + np.random.uniform(-0.05, 0.10), 2)
     return level, confidence
 
+# ── Endpoints Health ──────────────────────────────────────
+
 @app.get("/", tags=["Health"])
 def root():
     return {"service": "AgroVision AI", "version": "0.2.0", "status": "running"}
@@ -105,6 +122,8 @@ def root():
 @app.get("/health", tags=["Health"])
 def health():
     return {"status": "ok"}
+
+# ── Endpoints Predicción Riesgo ───────────────────────────
 
 @app.post("/predict-risk", response_model=PredictRiskResponse, tags=["Predicciones"])
 def predict_risk(req: PredictRiskRequest):
@@ -140,6 +159,8 @@ def risk_summary():
         {"region": "Valle",        "code": "76", "risk": "low",      "lat": 3.8509,  "lng": -76.4919},
     ]}
 
+# ── Endpoints EVA ─────────────────────────────────────────
+
 @app.get("/eva/summary", tags=["EVA"])
 async def eva_summary():
     return await fetch_eva_summary()
@@ -161,11 +182,13 @@ async def eva_cultivos(departamento: Optional[str] = Query(None)):
     cultivos = list({r.get("cultivo", "") for r in result.get("data", []) if r.get("cultivo")})
     return {"success": True, "total": len(cultivos), "cultivos": sorted(cultivos)}
 
+# ── Endpoints Clima ───────────────────────────────────────
+
 @app.get("/clima/nasa/{departamento}", tags=["Clima"])
 async def clima_nasa(departamento: str, days: int = Query(30, ge=7, le=365)):
     info = DEPARTAMENTOS.get(departamento.upper())
     if not info:
-        raise HTTPException(status_code=404, detail=f"Departamento no encontrado")
+        raise HTTPException(status_code=404, detail="Departamento no encontrado")
     return await fetch_nasa_power(lat=info["lat"], lng=info["lng"], days=days, departamento=departamento.upper())
 
 @app.get("/clima/nasa/coords", tags=["Clima"])
@@ -179,6 +202,8 @@ async def clima_actual(departamento: str):
         raise HTTPException(status_code=404, detail="Departamento no encontrado")
     return await fetch_openweather(info["capital"], departamento.upper())
 
+# ── Endpoints DANE ────────────────────────────────────────
+
 @app.get("/dane/municipios", tags=["DANE"])
 async def dane_municipios(departamento: Optional[str] = Query(None)):
     return await fetch_dane_municipios_join(departamento=departamento)
@@ -187,20 +212,48 @@ async def dane_municipios(departamento: Optional[str] = Query(None)):
 async def dane_lookup(nombre: str):
     return await lookup_municipio(nombre)
 
+# ── Endpoints Pipeline ────────────────────────────────────
+
 @app.get("/pipeline/{departamento}", tags=["Pipeline"])
 async def pipeline(departamento: str, cultivo: str = Query("MAIZ")):
     return await fetch_full_pipeline(departamento=departamento.upper(), cultivo=cultivo.upper())
-
-@app.get("/clima/nasa/{departamento}")
-def nasa_climate(departamento: str, days: int = 30):
-
-    return get_nasa_climate(departamento, days)
 
 @app.get("/departamentos", tags=["Regiones"])
 def departamentos():
     return {"total": len(DEPARTAMENTOS),
             "departamentos": [{"nombre": k, "capital": v["capital"], "lat": v["lat"], "lng": v["lng"]}
                                for k, v in DEPARTAMENTOS.items()]}
+
+# ── Endpoints ML Real ─────────────────────────────────────
+
+@app.post("/ml/train", tags=["ML"])
+async def ml_train():
+    """Entrena el modelo Random Forest con datos EVA reales desde datos.gov.co"""
+    return await train_model()
+
+@app.post("/ml/predict-rendimiento", tags=["ML"])
+def ml_predict(req: RendimientoRequest):
+    """Predice rendimiento agrícola (t/ha) con el modelo entrenado."""
+    return predict_rendimiento(
+        departamento=req.departamento,
+        cultivo=req.cultivo,
+        grupo_cultivo=req.grupo_cultivo,
+        area_sembrada=req.area_sembrada,
+        anio=req.anio,
+        periodo=req.periodo,
+    )
+
+@app.get("/ml/status", tags=["ML"])
+def ml_status():
+    """Verifica si el modelo está entrenado."""
+    trained = os.path.exists("rendimiento_model.pkl")
+    return {
+        "model_trained": trained,
+        "model_file": "rendimiento_model.pkl" if trained else None,
+        "message": "Listo para predecir" if trained else "Llama a POST /ml/train para entrenar",
+    }
+
+# ── Run ───────────────────────────────────────────────────
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)),
