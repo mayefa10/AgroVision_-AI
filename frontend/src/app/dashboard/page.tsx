@@ -11,12 +11,13 @@ const SECTIONS: Record<string, { title: string; component: React.ReactNode }> = 
   overview:   { title: "Resumen General",    component: <OverviewSection /> },
   clima:      { title: "Datos Climáticos",    component: <ClimaSection /> },
   agricola:   { title: "Datos Agrícolas EVA", component: <AgricolaSection /> },
+  mapa:       { title: "Mapa de Riesgo",      component: <MapSection /> },
   prediccion: { title: "Predicción IA",       component: <PrediccionSection /> },
 };
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("overview");
-  const current = SECTIONS[activeNav];
+  const current = SECTIONS[activeNav] ?? SECTIONS["overview"];
 
   return (
     <div className="dashboard-wrapper">

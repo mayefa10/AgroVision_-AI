@@ -112,8 +112,7 @@ export function ColombiaMap({ regions, onRegionClick }: Props) {
   return (
     <>
       <style>{`
-        @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
-        .agrovision-popup .leaflet-popup-content-wrapper {
+          .agrovision-popup .leaflet-popup-content-wrapper {
           border-radius: 10px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.12);
           border: 1px solid #e8e5df;
