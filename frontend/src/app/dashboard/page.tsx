@@ -5,14 +5,16 @@ import { OverviewSection } from "@/components/features/OverviewSection";
 import { ClimaSection } from "@/components/features/ClimaSection";
 import { AgricolaSection } from "@/components/features/AgricolaSection";
 import { MapSection } from "@/components/features/map/MapSection";
+import { AlertasSection } from "@/components/features/AlertasSection";
 import { PrediccionSection } from "@/components/features/PrediccionSection";
 
 const SECTIONS: Record<string, { title: string; component: React.ReactNode }> = {
-  overview:   { title: "Resumen General",    component: <OverviewSection /> },
-  clima:      { title: "Datos Climáticos",    component: <ClimaSection /> },
-  agricola:   { title: "Datos Agrícolas EVA", component: <AgricolaSection /> },
-  mapa:       { title: "Mapa de Riesgo",      component: <MapSection /> },
-  prediccion: { title: "Predicción IA",       component: <PrediccionSection /> },
+  overview: { title: "Resumen General", component: <OverviewSection /> },
+  clima: { title: "Datos Climáticos", component: <ClimaSection /> },
+  agricola: { title: "Datos Agrícolas EVA", component: <AgricolaSection /> },
+  alertas: { title: "Alertas Climáticas", component: <AlertasSection /> },
+  mapa: { title: "Mapa de Riesgo", component: <MapSection /> },
+  prediccion: { title: "Predicción IA", component: <PrediccionSection /> },
 };
 
 export default function DashboardPage() {
