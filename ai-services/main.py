@@ -22,6 +22,8 @@ from data_pipeline import (
 )
 from dane_module import fetch_divipola_geo, fetch_dane_municipios_join, lookup_municipio
 from ml_model import train_model, predict_rendimiento
+from alertas import generar_alertas_departamento, generar_alertas_nacional
+
 
 # ── App ───────────────────────────────────────────────────
 
@@ -258,3 +260,16 @@ def ml_status():
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)),
                 reload=os.getenv("ENV") == "development")
+
+# ── Endpoints Alertas ─────────────────────────────────────
+
+
+@app.get("/alertas/{departamento}", tags=["Alertas"])
+async def alertas_departamento(departamento: str):
+    """Genera alertas climáticas inteligentes para un departamento."""
+    return await generar_alertas_departamento(departamento)
+
+@app.get("/alertas", tags=["Alertas"])
+async def alertas_nacional():
+    """Genera alertas para todos los departamentos — puede tardar ~30s."""
+    return await generar_alertas_nacional()
