@@ -152,7 +152,8 @@ def prepare_features(df: pd.DataFrame, encoders: dict = None, fit: bool = True):
         if col not in df.columns:
             df[col] = 0
 
-    return df[feature_cols], df['rendimiento'], encoders
+    y = df['rendimiento'] if 'rendimiento' in df.columns else None
+    return df[feature_cols], y, encoders
 
 
 # ── 3. Entrenar modelo ────────────────────────────────────
