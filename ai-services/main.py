@@ -22,7 +22,9 @@ from data_pipeline import (
 )
 from dane_module import fetch_divipola_geo, fetch_dane_municipios_join, lookup_municipio
 from ml_model import train_model, predict_rendimiento
+from etl_pipeline import construir_dataset_maestro, ENSO_HISTORICO
 from alertas import generar_alertas_departamento, generar_alertas_nacional
+from datetime import datetime
 
 
 # ── App ───────────────────────────────────────────────────
@@ -273,3 +275,54 @@ async def alertas_departamento(departamento: str):
 async def alertas_nacional():
     """Genera alertas para todos los departamentos — puede tardar ~30s."""
     return await generar_alertas_nacional()
+
+
+# ── Endpoints ETL ─────────────────────────────────────────
+
+from etl_pipeline import construir_dataset_maestro, ENSO_HISTORICO
+
+@app.post("/etl/build", tags=["ETL"])
+async def etl_build(max_eva: int = 10000):
+    """
+    Construye el dataset maestro: EVA + NASA POWER + ENSO.
+    Puede tardar varios minutos.
+    """
+    return await construir_dataset_maestro(max_eva)
+
+@app.get("/etl/enso", tags=["ETL"])
+def etl_enso():
+    """Índice ENSO histórico 2007-2024 (ONI index)."""
+    return {
+        "fuente": "NOAA ONI Index",
+        "descripcion": "El Niño Southern Oscillation — fases históricas",
+        "data": [
+            {
+                "anio": anio,
+                "fase": v["fase"],
+                "intensidad": v["intensidad"],
+                "oni_index": v["oni"],
+                "impacto_colombia": "Sequías" if v["fase"] == "El Nino" else "Lluvias excesivas" if v["fase"] == "La Nina" else "Normal",
+            }
+            for anio, v in ENSO_HISTORICO.items()
+        ]
+    }
+
+@app.get("/etl/enso/actual", tags=["ETL"])
+def etl_enso_actual():
+    """Fase ENSO del año actual."""
+    anio_actual = datetime.utcnow().year
+    enso = ENSO_HISTORICO.get(anio_actual, ENSO_HISTORICO.get(2024))
+    return {
+        "anio": anio_actual,
+        "fase": enso["fase"],
+        "intensidad": enso["intensidad"],
+        "oni_index": enso["oni"],
+        "alerta": enso["fase"] != "Neutro",
+        "mensaje": (
+            f"⚠️ Fase {enso['fase']} activa con intensidad {enso['intensidad']}. "
+            f"ONI={enso['oni']}. " +
+            ("Riesgo elevado de sequías en Colombia." if enso["fase"] == "El Nino"
+             else "Riesgo elevado de lluvias excesivas e inundaciones." if enso["fase"] == "La Nina"
+             else "Condiciones climáticas normales.")
+        )
+    }
