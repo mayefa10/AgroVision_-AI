@@ -12,7 +12,7 @@ Target: rendimiento (t/ha)
 import httpx
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import logging
 import os
@@ -219,10 +219,22 @@ async def construir_clima_historico(anios: list) -> pd.DataFrame:
     logger.info(f"Descargando clima para {len(tasks)} combinaciones dept/año...")
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    rows = [r for r in results if isinstance(r, dict) and "temp_promedio" in r]
+    rows = [
+        r for r in results
+        if isinstance(r, dict)
+        and r.get("temp_promedio") is not None
+]
+    if not rows:
+        logger.warning("NASA POWER devolvió 0 registros válidos")
+        return pd.DataFrame(columns=[
+            "departamento",
+            "anio",
+            "temp_promedio",
+            "precipitacion",
+            "humedad",
+            "radiacion_solar"
+    ])
     df = pd.DataFrame(rows)
-    logger.info(f"Clima histórico: {len(df)} registros")
-    return df
 
 
 # ── 4. Integrar ENSO ─────────────────────────────────────
@@ -288,7 +300,7 @@ async def construir_dataset_maestro(max_eva: int = 30000) -> dict:
     Pipeline ETL completo.
     Construye el dataset maestro y lo guarda en datasets/features/
     """
-    inicio = datetime.utcnow()
+    inicio = datetime.now(timezone.utc)
     logger.info("=== INICIANDO ETL PIPELINE ===")
 
     # 1. EVA
@@ -308,7 +320,10 @@ async def construir_dataset_maestro(max_eva: int = 30000) -> dict:
 
     # 4. Merge EVA + Clima
     eva_clean["anio"] = eva_clean["anio"].astype(int)
-    clima["anio"] = clima["anio"].astype(int)
+    if not clima.empty and "anio" in clima.columns:
+        clima["anio"] = clima["anio"].astype(int)
+    else:
+        logger.warning("Dataset clima vacío — continuando sin variables climáticas")
     merged = eva_clean.merge(clima, on=["departamento", "anio"], how="left")
 
     # 5. ENSO
@@ -320,7 +335,7 @@ async def construir_dataset_maestro(max_eva: int = 30000) -> dict:
     # 7. Guardar
     dataset_final.to_csv(f"{FEATURES_PATH}/dataset_maestro.csv", index=False)
 
-    duracion = (datetime.utcnow() - inicio).seconds
+    duracion = (datetime.now(timezone.utc)- inicio).seconds
 
     stats = {
         "success": True,

@@ -1,69 +1,40 @@
-
 """
-AgroVision AI — AI Services v0.2.0
+AgroVision AI — Entry point
+Mantiene compatibilidad con los módulos existentes durante la migración.
 """
+# Importar app nueva (nueva arquitectura)
+from app.api.main import create_app
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+# Módulos legacy — se migrarán gradualmente
+from data_pipeline import (
+    fetch_eva_data, fetch_eva_summary, fetch_nasa_power,
+    fetch_openweather, fetch_full_pipeline, DEPARTAMENTOS,
+)
+from dane_module import fetch_divipola_geo, fetch_dane_municipios_join, lookup_municipio
+from ml_model import train_model, predict_rendimiento
+from alertas import generar_alertas_departamento, generar_alertas_nacional
+from etl_pipeline import construir_dataset_maestro, ENSO_HISTORICO
+
+from fastapi import HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional
 from enum import Enum
+from datetime import datetime
 import numpy as np
 import uvicorn
 import os
 
-from data_pipeline import (
-    fetch_eva_data,
-    fetch_eva_summary,
-    fetch_nasa_power,
-    fetch_openweather,
-    fetch_full_pipeline,
-    DEPARTAMENTOS,
-)
-from dane_module import fetch_divipola_geo, fetch_dane_municipios_join, lookup_municipio
-from ml_model import train_model, predict_rendimiento
-from etl_pipeline import construir_dataset_maestro, ENSO_HISTORICO
-from alertas import generar_alertas_departamento, generar_alertas_nacional
-from datetime import datetime
+# Crear app con nueva arquitectura como base
+app = create_app()
 
-
-# ── App ───────────────────────────────────────────────────
-
-app = FastAPI(
-    title="AgroVision AI — Services",
-    description="""
-Servicio de predicciones e IA para AgroVision.
-
-**Fuentes de datos:**
-- 🌾 EVA (datos.gov.co) — Evaluaciones Agropecuarias Municipales 2019-2024
-- 🛰️ NASA POWER — Datos agroclimáticos históricos (sin API key)
-- 🌤️ OpenWeather — Clima en tiempo real
-- 🗺️ DANE DIVIPOLA — Georreferenciación oficial municipios
-    """,
-    version="0.2.0",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ── Schemas ───────────────────────────────────────────────
+# ── Schemas legacy ────────────────────────────────────────
 
 class RiskLevel(str, Enum):
-    LOW      = "low"
-    MEDIUM   = "medium"
-    HIGH     = "high"
-    CRITICAL = "critical"
+    LOW = "low"; MEDIUM = "medium"; HIGH = "high"; CRITICAL = "critical"
 
 class PredictionType(str, Enum):
-    SEQUIA      = "sequia"
-    INUNDACION  = "inundacion"
-    HELADA      = "helada"
-    RENDIMIENTO = "rendimiento_cultivo"
+    SEQUIA = "sequia"; INUNDACION = "inundacion"
+    HELADA = "helada"; RENDIMIENTO = "rendimiento_cultivo"
 
 class PredictRiskRequest(BaseModel):
     region_code:     str             = Field(..., example="05001")
@@ -75,22 +46,15 @@ class PredictRiskRequest(BaseModel):
     altitud:         Optional[float] = Field(None, example=1500.0)
 
 class PredictRiskResponse(BaseModel):
-    region_code:     str
-    prediction_type: str
-    risk:            RiskLevel
-    confidence:      float
-    message:         str
-    variables_used:  dict
+    region_code: str; prediction_type: str; risk: RiskLevel
+    confidence: float; message: str; variables_used: dict
 
 class RendimientoRequest(BaseModel):
-    departamento:  str   = "ANTIOQUIA"
-    cultivo:       str   = "MAIZ"
-    grupo_cultivo: str   = "CEREALES Y LEGUMINOSAS"
-    area_sembrada: float = 100.0
-    anio:          int   = 2024
-    periodo:       int   = 1
+    departamento: str = "ANTIOQUIA"; cultivo: str = "MAIZ"
+    grupo_cultivo: str = "CEREALES Y LEGUMINOSAS"
+    area_sembrada: float = 100.0; anio: int = 2024; periodo: int = 1
 
-# ── Lógica ML heurístico ──────────────────────────────────
+# ── Lógica riesgo ─────────────────────────────────────────
 
 def calculate_risk(req: PredictRiskRequest):
     score = 0.0
@@ -117,17 +81,7 @@ def calculate_risk(req: PredictRiskRequest):
     confidence = round(0.70 + np.random.uniform(-0.05, 0.10), 2)
     return level, confidence
 
-# ── Endpoints Health ──────────────────────────────────────
-
-@app.get("/", tags=["Health"])
-def root():
-    return {"service": "AgroVision AI", "version": "0.2.0", "status": "running"}
-
-@app.get("/health", tags=["Health"])
-def health():
-    return {"status": "ok"}
-
-# ── Endpoints Predicción Riesgo ───────────────────────────
+# ── Endpoints legacy ──────────────────────────────────────
 
 @app.post("/predict-risk", response_model=PredictRiskResponse, tags=["Predicciones"])
 def predict_risk(req: PredictRiskRequest):
@@ -139,11 +93,8 @@ def predict_risk(req: PredictRiskRequest):
         RiskLevel.CRITICAL: f"RIESGO CRÍTICO de {req.prediction_type.value}. Emergencia.",
     }
     return PredictRiskResponse(
-        region_code=req.region_code,
-        prediction_type=req.prediction_type.value,
-        risk=risk_level,
-        confidence=confidence,
-        message=messages[risk_level],
+        region_code=req.region_code, prediction_type=req.prediction_type.value,
+        risk=risk_level, confidence=confidence, message=messages[risk_level],
         variables_used={"temperatura": req.temperatura, "humedad": req.humedad,
                         "precipitacion": req.precipitacion, "viento": req.viento, "altitud": req.altitud},
     )
@@ -163,50 +114,9 @@ def risk_summary():
         {"region": "Valle",        "code": "76", "risk": "low",      "lat": 3.8509,  "lng": -76.4919},
     ]}
 
-# ── Endpoints EVA ─────────────────────────────────────────
-
 @app.get("/eva/summary", tags=["EVA"])
 async def eva_summary():
     return await fetch_eva_summary()
-
-@app.get("/eva/data", tags=["EVA"])
-async def eva_data(
-    departamento: Optional[str] = Query(None, example="ANTIOQUIA"),
-    cultivo:      Optional[str] = Query(None, example="MAIZ"),
-    anio:         Optional[int] = Query(None, example=2023),
-    limit:        int           = Query(500, le=5000),
-):
-    return await fetch_eva_data(departamento=departamento, cultivo=cultivo, anio=anio, limit=limit)
-
-@app.get("/eva/cultivos", tags=["EVA"])
-async def eva_cultivos(departamento: Optional[str] = Query(None)):
-    result = await fetch_eva_data(departamento=departamento, limit=5000)
-    if not result.get("success"):
-        return result
-    cultivos = list({r.get("cultivo", "") for r in result.get("data", []) if r.get("cultivo")})
-    return {"success": True, "total": len(cultivos), "cultivos": sorted(cultivos)}
-
-# ── Endpoints Clima ───────────────────────────────────────
-
-@app.get("/clima/nasa/{departamento}", tags=["Clima"])
-async def clima_nasa(departamento: str, days: int = Query(30, ge=7, le=365)):
-    info = DEPARTAMENTOS.get(departamento.upper())
-    if not info:
-        raise HTTPException(status_code=404, detail="Departamento no encontrado")
-    return await fetch_nasa_power(lat=info["lat"], lng=info["lng"], days=days, departamento=departamento.upper())
-
-@app.get("/clima/nasa/coords", tags=["Clima"])
-async def clima_nasa_coords(lat: float = Query(...), lng: float = Query(...), days: int = Query(30)):
-    return await fetch_nasa_power(lat=lat, lng=lng, days=days)
-
-@app.get("/clima/actual/{departamento}", tags=["Clima"])
-async def clima_actual(departamento: str):
-    info = DEPARTAMENTOS.get(departamento.upper())
-    if not info:
-        raise HTTPException(status_code=404, detail="Departamento no encontrado")
-    return await fetch_openweather(info["capital"], departamento.upper())
-
-# ── Endpoints DANE ────────────────────────────────────────
 
 @app.get("/dane/municipios", tags=["DANE"])
 async def dane_municipios(departamento: Optional[str] = Query(None)):
@@ -215,8 +125,6 @@ async def dane_municipios(departamento: Optional[str] = Query(None)):
 @app.get("/dane/lookup/{nombre}", tags=["DANE"])
 async def dane_lookup(nombre: str):
     return await lookup_municipio(nombre)
-
-# ── Endpoints Pipeline ────────────────────────────────────
 
 @app.get("/pipeline/{departamento}", tags=["Pipeline"])
 async def pipeline(departamento: str, cultivo: str = Query("MAIZ")):
@@ -228,101 +136,52 @@ def departamentos():
             "departamentos": [{"nombre": k, "capital": v["capital"], "lat": v["lat"], "lng": v["lng"]}
                                for k, v in DEPARTAMENTOS.items()]}
 
-# ── Endpoints ML Real ─────────────────────────────────────
-
 @app.post("/ml/train", tags=["ML"])
 async def ml_train():
-    """Entrena el modelo Random Forest con datos EVA reales desde datos.gov.co"""
     return await train_model()
 
 @app.post("/ml/predict-rendimiento", tags=["ML"])
 def ml_predict(req: RendimientoRequest):
-    """Predice rendimiento agrícola (t/ha) con el modelo entrenado."""
-    return predict_rendimiento(
-        departamento=req.departamento,
-        cultivo=req.cultivo,
-        grupo_cultivo=req.grupo_cultivo,
-        area_sembrada=req.area_sembrada,
-        anio=req.anio,
-        periodo=req.periodo,
-    )
+    return predict_rendimiento(req.departamento, req.cultivo, req.grupo_cultivo,
+                                req.area_sembrada, req.anio, req.periodo)
 
 @app.get("/ml/status", tags=["ML"])
 def ml_status():
-    """Verifica si el modelo está entrenado."""
     trained = os.path.exists("rendimiento_model.pkl")
-    return {
-        "model_trained": trained,
-        "model_file": "rendimiento_model.pkl" if trained else None,
-        "message": "Listo para predecir" if trained else "Llama a POST /ml/train para entrenar",
-    }
-
-# ── Run ───────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)),
-                reload=os.getenv("ENV") == "development")
-
-# ── Endpoints Alertas ─────────────────────────────────────
-
+    return {"model_trained": trained,
+            "message": "Listo para predecir" if trained else "Llama a POST /ml/train"}
 
 @app.get("/alertas/{departamento}", tags=["Alertas"])
 async def alertas_departamento(departamento: str):
-    """Genera alertas climáticas inteligentes para un departamento."""
     return await generar_alertas_departamento(departamento)
 
 @app.get("/alertas", tags=["Alertas"])
 async def alertas_nacional():
-    """Genera alertas para todos los departamentos — puede tardar ~30s."""
     return await generar_alertas_nacional()
-
-
-# ── Endpoints ETL ─────────────────────────────────────────
-
-from etl_pipeline import construir_dataset_maestro, ENSO_HISTORICO
 
 @app.post("/etl/build", tags=["ETL"])
 async def etl_build(max_eva: int = 10000):
-    """
-    Construye el dataset maestro: EVA + NASA POWER + ENSO.
-    Puede tardar varios minutos.
-    """
     return await construir_dataset_maestro(max_eva)
 
 @app.get("/etl/enso", tags=["ETL"])
 def etl_enso():
-    """Índice ENSO histórico 2007-2024 (ONI index)."""
-    return {
-        "fuente": "NOAA ONI Index",
-        "descripcion": "El Niño Southern Oscillation — fases históricas",
-        "data": [
-            {
-                "anio": anio,
-                "fase": v["fase"],
-                "intensidad": v["intensidad"],
-                "oni_index": v["oni"],
-                "impacto_colombia": "Sequías" if v["fase"] == "El Nino" else "Lluvias excesivas" if v["fase"] == "La Nina" else "Normal",
-            }
-            for anio, v in ENSO_HISTORICO.items()
-        ]
-    }
+    return {"fuente": "NOAA ONI Index", "data": [
+        {"anio": a, **v,
+         "impacto_colombia": "Sequías" if v["fase"] == "El Nino" else "Lluvias excesivas" if v["fase"] == "La Nina" else "Normal"}
+        for a, v in ENSO_HISTORICO.items()
+    ]}
 
 @app.get("/etl/enso/actual", tags=["ETL"])
 def etl_enso_actual():
-    """Fase ENSO del año actual."""
-    anio_actual = datetime.utcnow().year
-    enso = ENSO_HISTORICO.get(anio_actual, ENSO_HISTORICO.get(2024))
-    return {
-        "anio": anio_actual,
-        "fase": enso["fase"],
-        "intensidad": enso["intensidad"],
-        "oni_index": enso["oni"],
-        "alerta": enso["fase"] != "Neutro",
-        "mensaje": (
-            f"⚠️ Fase {enso['fase']} activa con intensidad {enso['intensidad']}. "
-            f"ONI={enso['oni']}. " +
-            ("Riesgo elevado de sequías en Colombia." if enso["fase"] == "El Nino"
-             else "Riesgo elevado de lluvias excesivas e inundaciones." if enso["fase"] == "La Nina"
-             else "Condiciones climáticas normales.")
-        )
-    }
+    anio = datetime.utcnow().year
+    enso = ENSO_HISTORICO.get(anio, ENSO_HISTORICO.get(2024))
+    return {"anio": anio, "fase": enso["fase"], "intensidad": enso["intensidad"],
+            "oni_index": enso["oni"], "alerta": enso["fase"] != "Neutro",
+            "mensaje": f"⚠️ Fase {enso['fase']} activa. ONI={enso['oni']}. " +
+                       ("Riesgo sequías." if enso["fase"] == "El Nino" else
+                        "Riesgo lluvias excesivas." if enso["fase"] == "La Nina" else "Condiciones normales.")}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)),
+                reload=os.getenv("ENV") == "development")
