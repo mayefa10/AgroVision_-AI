@@ -1,61 +1,16 @@
-import requests
-from datetime import datetime, timedelta
+"""AgroVision AI — Servicio NASA POWER (acceso directo para ETL)."""
+from __future__ import annotations
 
-# Coordenadas simples iniciales
-DEPARTAMENTOS = {
-    "ANTIOQUIA": {"lat": 6.2518, "lon": -75.5636},
-    "CUNDINAMARCA": {"lat": 4.7110, "lon": -74.0721},
-    "VALLE": {"lat": 3.4516, "lon": -76.5320},
-    "BOYACA": {"lat": 5.4545, "lon": -73.3620},
-}
+from typing import Optional
 
-NASA_BASE_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
+from app.infrastructure.clients.nasa_client import NasaClient
+
+_nasa = NasaClient()
 
 
-def get_nasa_climate(departamento: str, days: int = 30):
+async def fetch_daily(lat: float, lng: float, days: int = 30, departamento: Optional[str] = None) -> dict:
+    return await _nasa.fetch_daily(lat, lng, days, departamento)
 
-    departamento = departamento.upper()
 
-    if departamento not in DEPARTAMENTOS:
-        return {"error": "Departamento no soportado"}
-
-    coords = DEPARTAMENTOS[departamento]
-
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=days)
-
-    start = start_date.strftime("%Y%m%d")
-    end = end_date.strftime("%Y%m%d")
-
-    params = {
-        "parameters": "T2M,PRECTOTCORR,RH2M",
-        "community": "AG",
-        "longitude": coords["lon"],
-        "latitude": coords["lat"],
-        "start": start,
-        "end": end,
-        "format": "JSON",
-    }
-
-    response = requests.get(NASA_BASE_URL, params=params)
-
-    data = response.json()
-
-    climate = data["properties"]["parameter"]
-
-    temperatures = list(climate["T2M"].values())
-    precipitation = list(climate["PRECTOTCORR"].values())
-    humidity = list(climate["RH2M"].values())
-
-    result = {
-        "departamento": departamento,
-        "coordinates": coords,
-        "days": days,
-        "climate": {
-            "temperature_avg": round(sum(temperatures) / len(temperatures), 2),
-            "precipitation_total": round(sum(precipitation), 2),
-            "humidity_avg": round(sum(humidity) / len(humidity), 2),
-        },
-    }
-
-    return result
+async def fetch_annual(lat: float, lng: float, anio: int, departamento: Optional[str] = None) -> dict:
+    return await _nasa.fetch_annual(lat, lng, anio, departamento)

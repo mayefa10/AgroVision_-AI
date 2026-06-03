@@ -1,0 +1,38 @@
+[
+  {
+    "departamento": "ANTIOQUIA",
+    "municipio": "MEDELLIN",
+    "cultivo": "MAIZ",
+    "grupo_cultivo": "CEREALES Y LEGUMINOSAS",
+    "a_o": "2023",
+    "periodo": "PRIMER SEMESTRE",
+    "rea_sembrada": "150.5",
+    "rea_cosechada": "140.0",
+    "producci_n": "420.0",
+    "rendimiento": "3.0"
+  },
+  {
+    "departamento": "CUNDINAMARCA",
+    "municipio": "BOGOTA",
+    "cultivo": "PAPA",
+    "grupo_cultivo": "TUBERCULOS Y PLATANOS",
+    "a_o": "2022",
+    "periodo": "SEGUNDO SEMESTRE",
+    "rea_sembrada": "80.0",
+    "rea_cosechada": "75.0",
+    "producci_n": "1200.0",
+    "rendimiento": "16.0"
+  },
+  {
+    "departamento": "TOLIMA",
+    "municipio": "IBAGUE",
+    "cultivo": "ARROZ",
+    "grupo_cultivo": "CEREALES Y LEGUMINOSAS",
+    "a_o": "2023",
+    "periodo": "PRIMER SEMESTRE",
+    "rea_sembrada": "300.0",
+    "rea_cosechada": "290.0",
+    "producci_n": "1740.0",
+    "rendimiento": "6.0"
+  }
+]

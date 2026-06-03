@@ -174,3 +174,212 @@ git checkout -b feature/nombre-feature
 git commit -m "feat: descripción"
 git push origin feature/nombre-feature
 ```
+
+```
+AgroVision_AI
+├─ .qodo
+│  ├─ agents
+│  └─ workflows
+├─ ai-services
+│  ├─ alertas.py
+│  ├─ app
+│  │  ├─ api
+│  │  │  ├─ deps.py
+│  │  │  ├─ main.py
+│  │  │  ├─ routers
+│  │  │  │  ├─ alerts.py
+│  │  │  │  ├─ climate.py
+│  │  │  │  ├─ dane.py
+│  │  │  │  ├─ etl.py
+│  │  │  │  ├─ eva.py
+│  │  │  │  ├─ health.py
+│  │  │  │  ├─ ml.py
+│  │  │  │  ├─ predictions.py
+│  │  │  │  └─ __init__.py
+│  │  │  └─ __init__.py
+│  │  ├─ config
+│  │  │  ├─ constants.py
+│  │  │  ├─ logging_config.py
+│  │  │  ├─ settings.py
+│  │  │  └─ __init__.py
+│  │  ├─ domain
+│  │  │  ├─ enums.py
+│  │  │  ├─ models.py
+│  │  │  ├─ schemas.py
+│  │  │  └─ __init__.py
+│  │  ├─ etl
+│  │  │  ├─ cleaners
+│  │  │  │  └─ eva_cleaner.py
+│  │  │  ├─ loaders
+│  │  │  │  └─ csv_loader.py
+│  │  │  ├─ pipelines
+│  │  │  │  └─ master_pipeline.py
+│  │  │  ├─ transformers
+│  │  │  │  └─ enso_transformer.py
+│  │  │  └─ __init__.py
+│  │  ├─ infrastructure
+│  │  │  ├─ cache
+│  │  │  │  └─ redis_client.py
+│  │  │  ├─ clients
+│  │  │  │  ├─ base_client.py
+│  │  │  │  ├─ dane_client.py
+│  │  │  │  ├─ eva_client.py
+│  │  │  │  ├─ nasa_client.py
+│  │  │  │  ├─ weather_client.py
+│  │  │  │  └─ __init__.py
+│  │  │  ├─ persistence
+│  │  │  │  └─ dataset_storage.py
+│  │  │  └─ __init__.py
+│  │  ├─ ml
+│  │  │  ├─ features
+│  │  │  │  ├─ engineering.py
+│  │  │  │  └─ selection.py
+│  │  │  ├─ inference
+│  │  │  │  └─ predictor.py
+│  │  │  ├─ models
+│  │  │  │  ├─ base.py
+│  │  │  │  ├─ random_forest.py
+│  │  │  │  └─ __init__.py
+│  │  │  ├─ training
+│  │  │  │  └─ trainer.py
+│  │  │  └─ __init__.py
+│  │  ├─ utils
+│  │  │  ├─ dates.py
+│  │  │  └─ __init__.py
+│  │  └─ __init__.py
+│  ├─ dane_module.py
+│  ├─ data_pipeline.py
+│  ├─ Dockerfile
+│  ├─ etl_pipeline.py
+│  ├─ main.py
+│  ├─ ml_model.py
+│  ├─ requirements.txt
+│  ├─ services
+│  │  ├─ alert_service.py
+│  │  ├─ climate_service.py
+│  │  ├─ etl_service.py
+│  │  ├─ eva_service.py
+│  │  ├─ ml_service.py
+│  │  ├─ nasa_service.py
+│  │  ├─ risk_service.py
+│  │  └─ __init__.py
+│  └─ tests
+│     ├─ conftest.py
+│     ├─ fixtures
+│     │  ├─ mock_eva_response.json
+│     │  └─ mock_nasa_response.json
+│     ├─ integration
+│     │  ├─ test_e2e_pipeline.py
+│     │  └─ test_nasa_client.py
+│     ├─ unit
+│     │  ├─ test_eva_client.py
+│     │  ├─ test_ml_predictor.py
+│     │  └─ test_risk_service.py
+│     └─ __init__.py
+├─ backend
+│  ├─ .prettierrc
+│  ├─ Dockerfile
+│  ├─ eslint.config.mjs
+│  ├─ nest-cli.json
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ prisma
+│  │  ├─ migrations
+│  │  │  ├─ 20260514212000_init
+│  │  │  │  └─ migration.sql
+│  │  │  └─ migration_lock.toml
+│  │  └─ schema.prisma
+│  ├─ README.md
+│  ├─ src
+│  │  ├─ alerts
+│  │  │  └─ alerts.module.ts
+│  │  ├─ app.controller.spec.ts
+│  │  ├─ app.controller.ts
+│  │  ├─ app.module.ts
+│  │  ├─ app.service.ts
+│  │  ├─ auth
+│  │  │  └─ auth.module.ts
+│  │  ├─ dashboard
+│  │  │  └─ dashboard.module.ts
+│  │  ├─ datasets
+│  │  │  └─ datasets.module.ts
+│  │  ├─ main.ts
+│  │  ├─ maps
+│  │  │  └─ maps.module.ts
+│  │  ├─ predictions
+│  │  │  └─ predictions.module.ts
+│  │  └─ users
+│  │     └─ users.module.ts
+│  ├─ test
+│  │  ├─ app.e2e-spec.ts
+│  │  └─ jest-e2e.json
+│  ├─ tsconfig.build.json
+│  └─ tsconfig.json
+├─ docker-compose.yml
+├─ frontend
+│  ├─ AGENTS.md
+│  ├─ CLAUDE.md
+│  ├─ Dockerfile
+│  ├─ eslint.config.mjs
+│  ├─ next.config.ts
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ postcss.config.mjs
+│  ├─ public
+│  │  ├─ file.svg
+│  │  ├─ globe.svg
+│  │  ├─ next.svg
+│  │  ├─ vercel.svg
+│  │  └─ window.svg
+│  ├─ README.md
+│  ├─ src
+│  │  ├─ app
+│  │  │  ├─ dashboard
+│  │  │  │  └─ page.tsx
+│  │  │  ├─ globals.css
+│  │  │  ├─ layout.tsx
+│  │  │  └─ page.tsx
+│  │  ├─ components
+│  │  │  ├─ features
+│  │  │  │  ├─ AgricolaSection.tsx
+│  │  │  │  ├─ AlertasSection.tsx
+│  │  │  │  ├─ charts
+│  │  │  │  │  ├─ ClimateAreaChart.tsx
+│  │  │  │  │  └─ RiskBarChart.tsx
+│  │  │  │  ├─ ClimaSection.tsx
+│  │  │  │  ├─ map
+│  │  │  │  │  ├─ ColombiaMap.tsx
+│  │  │  │  │  └─ MapSection.tsx
+│  │  │  │  ├─ OverviewSection.tsx
+│  │  │  │  └─ PrediccionSection.tsx
+│  │  │  └─ ui
+│  │  │     ├─ Badge.tsx
+│  │  │     ├─ Button.tsx
+│  │  │     ├─ Card.tsx
+│  │  │     ├─ KpiCard.tsx
+│  │  │     ├─ SectionHeader.tsx
+│  │  │     ├─ Sidebar.tsx
+│  │  │     ├─ Table.tsx
+│  │  │     └─ Tabs.tsx
+│  │  ├─ hooks
+│  │  │  ├─ useAlertas.ts
+│  │  │  ├─ useEvaData.ts
+│  │  │  ├─ useMlModel.ts
+│  │  │  ├─ useNasaData.ts
+│  │  │  ├─ usePrediction.ts
+│  │  │  └─ useRegions.ts
+│  │  ├─ lib
+│  │  │  ├─ api.ts
+│  │  │  ├─ constants.ts
+│  │  │  └─ utils.ts
+│  │  ├─ services
+│  │  │  └─ climate.service.ts
+│  │  ├─ styles
+│  │  │  └─ animations.css
+│  │  └─ types
+│  │     └─ index.ts
+│  └─ tsconfig.json
+├─ README.md
+└─ setup.sh
+
+```

@@ -1,23 +1,27 @@
-from fastapi import APIRouter, Query
+"""AgroVision AI — Router EVA (Evaluaciones Agropecuarias)."""
+from __future__ import annotations
+
 from typing import Optional
-from app.infrastructure.clients.eva_client import eva_client
+
+from fastapi import APIRouter, Query
+
+from services.eva_service import get_eva, get_eva_summary
 
 router = APIRouter(prefix="/eva", tags=["EVA"])
 
-@router.get("/data")
-async def eva_data(
-    departamento: Optional[str] = Query(None, example="ANTIOQUIA"),
-    cultivo:      Optional[str] = Query(None, example="MAIZ"),
-    anio:         Optional[int] = Query(None, example=2023),
-    limit:        int           = Query(500, le=5000),
-):
-    """Datos EVA con filtros. Fuente: datos.gov.co"""
-    return await eva_client.fetch(departamento=departamento, cultivo=cultivo, anio=anio, limit=limit)
 
-@router.get("/cultivos")
-async def eva_cultivos(departamento: Optional[str] = Query(None)):
-    result = await eva_client.fetch(departamento=departamento, limit=5000)
-    if not result.get("success"):
-        return result
-    cultivos = list({r.get("cultivo", "") for r in result.get("data", []) if r.get("cultivo")})
-    return {"success": True, "total": len(cultivos), "cultivos": sorted(cultivos)}
+@router.get("/summary")
+async def eva_summary():
+    """Resumen nacional EVA: top cultivos y departamentos por producción."""
+    return await get_eva_summary()
+
+
+@router.get("")
+async def eva_data(
+    departamento: Optional[str] = Query(None),
+    cultivo:      Optional[str] = Query(None),
+    anio:         Optional[int] = Query(None),
+    limit:        int           = Query(1000, ge=1, le=5000),
+):
+    """Consulta datos EVA con filtros opcionales."""
+    return await get_eva(departamento, cultivo, anio, limit)

@@ -1,12 +1,22 @@
+"""AgroVision AI — Router health."""
+from __future__ import annotations
+
 from fastapi import APIRouter
-from app.config.settings import settings
 
-router = APIRouter(tags=["Health"])
+from app.config.settings import get_settings
+from app.ml.inference.predictor import model_is_trained
+from app.utils.dates import utcnow_iso
 
-@router.get("/")
-def root():
-    return {"service": settings.APP_NAME, "version": settings.VERSION, "status": "running"}
+router = APIRouter(prefix="/health", tags=["Health"])
 
-@router.get("/health")
-def health():
-    return {"status": "ok"}
+
+@router.get("")
+def health_check():
+    s = get_settings()
+    return {
+        "status":        "ok",
+        "app":           s.app_name,
+        "env":           s.env,
+        "model_trained": model_is_trained(),
+        "timestamp":     utcnow_iso(),
+    }

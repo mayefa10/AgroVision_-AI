@@ -1,163 +1,109 @@
-"""Modelos de dominio para AgroVision AI."""
+"""
+AgroVision AI — Modelos de dominio.
+Representaciones internas de los datos (no Pydantic, no ORM).
+Usadas por los servicios para pasar datos entre capas.
+"""
+from __future__ import annotations
 
-from datetime import datetime
-from enum import Enum
-from typing import Dict, List, Optional, Any
-
-from pydantic import BaseModel, Field
-
-
-class RiskLevel(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+from dataclasses import dataclass, field
+from typing import Optional
 
 
-class PredictionType(str, Enum):
-    SEQUIA = "sequia"
-    INUNDACION = "inundacion"
-    HELADA = "helada"
-    RENDIMIENTO = "rendimiento_cultivo"
+@dataclass
+class DepartamentoInfo:
+    nombre:  str
+    lat:     float
+    lng:     float
+    capital: str
+    codigo:  str
+    cultivos: list[str] = field(default_factory=list)
 
 
-class ENSOPhase(str, Enum):
-    EL_NINO = "El Nino"
-    LA_NINA = "La Nina"
-    NEUTRO = "Neutro"
+@dataclass
+class ClimaPeriodo:
+    temperatura_promedio:   float
+    temperatura_max:        float
+    temperatura_min:        float
+    precipitacion_promedio: float
+    precipitacion_total:    float
+    humedad_promedio:       float
+    dias_sin_lluvia:        int
+    dias_con_lluvia:        int
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "ClimaPeriodo":
+        return cls(
+            temperatura_promedio=d.get("temperatura_promedio", 0),
+            temperatura_max=d.get("temperatura_max", 0),
+            temperatura_min=d.get("temperatura_min", 0),
+            precipitacion_promedio=d.get("precipitacion_promedio", 0),
+            precipitacion_total=d.get("precipitacion_total", 0),
+            humedad_promedio=d.get("humedad_promedio", 0),
+            dias_sin_lluvia=d.get("dias_sin_lluvia", 0),
+            dias_con_lluvia=d.get("dias_con_lluvia", 0),
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "temperatura_promedio":   self.temperatura_promedio,
+            "temperatura_max":        self.temperatura_max,
+            "temperatura_min":        self.temperatura_min,
+            "precipitacion_promedio": self.precipitacion_promedio,
+            "precipitacion_total":    self.precipitacion_total,
+            "humedad_promedio":       self.humedad_promedio,
+            "dias_sin_lluvia":        self.dias_sin_lluvia,
+            "dias_con_lluvia":        self.dias_con_lluvia,
+        }
 
 
-class GeoCoords(BaseModel):
-    lat: float
-    lng: float
+@dataclass
+class AlertaModel:
+    id:                 str
+    tipo:               str
+    severidad:          str
+    departamento:       str
+    titulo:             str
+    mensaje:            str
+    cultivos_afectados: list[str]
+    variables:          dict[str, float]
+    recomendacion:      str
+    score:              int
+    fecha:              str
+    activa:             bool = True
 
 
-class ClimateStats(BaseModel):
-    temperatura_promedio: Optional[float] = None
-    temperatura_max: Optional[float] = None
-    temperatura_min: Optional[float] = None
-    precipitacion_total: Optional[float] = None
-    humedad_promedio: Optional[float] = None
-    dias_sin_lluvia: Optional[int] = None
-    dias_con_lluvia: Optional[int] = None
-
-
-class ClimateRecord(BaseModel):
-    fecha: str
-    temperatura: float
-    precipitacion: float
-    humedad: float
-    radiacion_solar: float
-    viento: float
-
-
-class ClimateData(BaseModel):
-    success: bool
-    source: str = "NASA POWER"
-    departamento: Optional[str] = None
-    coordenadas: GeoCoords
-    periodo: Dict[str, Any]
-    estadisticas: ClimateStats
-    data: List[ClimateRecord]
-    fetched_at: datetime
-
-
-class EVARecord(BaseModel):
-    departamento: str
-    municipio: Optional[str] = None
-    cultivo: str
-    anio: int
-    area_sembrada: Optional[float] = None
-    area_cosechada: Optional[float] = None
-    produccion: Optional[float] = None
-    rendimiento: Optional[float] = None
-    periodo: Optional[int] = None
-
-
-class EVASummary(BaseModel):
-    success: bool
-    source: str = "EVA — datos.gov.co"
-    dataset_id: str
-    total_registros: int
-    filtros: Dict[str, Any]
-    estadisticas: Dict[str, float]
-    data: List[Dict[str, Any]]
-    fetched_at: datetime
-
-
-class RiskPredictionRequest(BaseModel):
-    region_code: str = Field(..., example="05001")
-    prediction_type: PredictionType = PredictionType.SEQUIA
-    temperatura: float = Field(..., ge=-10, le=50, example=28.5)
-    humedad: float = Field(..., ge=0, le=100, example=65.0)
-    precipitacion: float = Field(..., ge=0, example=12.0)
-    viento: Optional[float] = Field(None, example=8.5)
-    altitud: Optional[float] = Field(None, example=1500.0)
-
-
-class RiskPredictionResponse(BaseModel):
-    region_code: str
-    prediction_type: str
-    risk: RiskLevel
+@dataclass
+class RiskEvaluation:
+    score:      float
+    risk_level: str
     confidence: float
-    message: str
-    variables_used: Dict[str, Optional[float]]
+    message:    str
 
 
-class RendimientoRequest(BaseModel):
-    departamento: str = "ANTIOQUIA"
-    cultivo: str = "MAIZ"
-    grupo_cultivo: str = "CEREALES Y LEGUMINOSAS"
-    area_sembrada: float = 100.0
-    anio: int = 2024
-    periodo: int = 1
-
-
-class RendimientoResponse(BaseModel):
-    success: bool
-    departamento: str
-    cultivo: str
+@dataclass
+class YieldPrediction:
+    departamento:         str
+    cultivo:              str
     rendimiento_predicho: float
-    unidad: str = "t/ha"
-    nivel: str
-    anio: int
-    area_sembrada: float
+    nivel:                str
+    anio:                 int
+    area_sembrada:        float
+    unidad:               str = "t/ha"
 
 
-class MLTrainingResult(BaseModel):
-    success: bool
-    registros_entrenamiento: int
-    registros_test: int
-    mae: float
-    r2: float
-    feature_importance: Dict[str, float]
-    model_path: str
-
-
-class ETLResult(BaseModel):
-    success: bool
-    duracion_segundos: int
-    registros_eva_raw: int
-    registros_eva_clean: int
-    registros_dataset_final: int
-    departamentos: int
-    cultivos: int
-    anios: List[int]
-    columnas: List[str]
-    archivos: Dict[str, str]
-
-
-class ENSOResponse(BaseModel):
-    anio: int
-    fase: str
+@dataclass
+class EnsoRecord:
+    anio:       int
+    fase:       str
     intensidad: str
-    oni_index: float
-    impacto_colombia: str
+    oni:        float
     es_el_nino: bool
     es_la_nina: bool
 
-
-class HealthStatus(BaseModel):
-    service: str
-    version: str
-    status: str
+    @property
+    def impacto_colombia(self) -> str:
+        if self.es_el_nino:
+            return "Sequías"
+        if self.es_la_nina:
+            return "Lluvias excesivas"
+        return "Normal"
