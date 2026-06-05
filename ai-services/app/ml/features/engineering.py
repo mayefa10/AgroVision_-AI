@@ -1,6 +1,8 @@
 """
 AgroVision AI — Feature engineering para el modelo ML.
-Crea variables derivadas a partir del dataset EVA + clima + ENSO.
+
+NOTA: El renombrado de columnas EVA (a_o → anio, rea_sembrada → area_sembrada, etc.)
+ocurre en EvaClient._normalizar_df(). Este módulo asume columnas ya canónicas.
 """
 from __future__ import annotations
 
@@ -9,6 +11,8 @@ import logging
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+
+from app.utils.dates import parse_periodo
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +29,6 @@ FEATURE_COLS = [
     "periodo_num",
 ]
 
-_RENAME_MAP: dict[str, str] = {
-    "c_digo_dane_departamento":      "codigo_dane_dpto",
-    "c_digo_dane_municipio":         "codigo_dane_mpio",
-    "a_o":                           "anio",
-    "rea_sembrada":                  "area_sembrada",
-    "rea_cosechada":                 "area_cosechada",
-    "producci_n":                    "produccion",
-    "desagregaci_n_cultivo":         "desagregacion_cultivo",
-    "ciclo_del_cultivo":             "ciclo_cultivo",
-    "estado_f_sico_del_cultivo":     "estado_fisico",
-    "c_digo_del_cultivo":            "codigo_cultivo",
-    "nombre_cient_fico_del_cultivo": "nombre_cientifico",
-}
-
 
 def prepare_features(
     df: pd.DataFrame,
@@ -46,41 +36,40 @@ def prepare_features(
     fit: bool = True,
 ) -> tuple[pd.DataFrame, pd.Series | None, dict]:
     """
-    Limpia y prepara el DataFrame para entrenamiento o inferencia.
+    Prepara el DataFrame EVA para entrenamiento o inferencia.
+
+    El DataFrame de entrada debe venir con columnas canónicas
+    (ya procesado por EvaClient o por el ETL cleaner):
+        anio, area_sembrada, area_cosechada, produccion, rendimiento,
+        departamento, cultivo, grupo_cultivo, periodo / semestre
 
     Parámetros:
-        df       : DataFrame crudo de EVA
-        encoders : LabelEncoders ya entrenados (None = crear nuevos)
-        fit      : True → entrenamiento (ajusta encoders),
-                   False → inferencia (usa encoders existentes)
+        df       : DataFrame con columnas canónicas
+        encoders : LabelEncoders ya entrenados (None = crear nuevos en fit=True)
+        fit      : True → entrenamiento, False → inferencia
 
     Retorna:
-        X        : DataFrame con features listas para el modelo
-        y        : Serie con el target (rendimiento) o None si no existe
-        encoders : dict con LabelEncoders (uno por columna categórica)
+        X        : DataFrame con las FEATURE_COLS listas para el modelo
+        y        : Serie 'rendimiento' (target) o None si no existe
+        encoders : dict de LabelEncoders por columna categórica
     """
-    from app.utils.dates import parse_periodo
-
     df = df.copy()
 
-    # Renombrar columnas con caracteres especiales
-    df = df.rename(columns={k: v for k, v in _RENAME_MAP.items() if k in df.columns})
-
-    # Numéricos
-    for col in ["area_sembrada", "area_cosechada", "produccion", "rendimiento"]:
+    # ── Numéricos (por si alguno llegó como string) ───────
+    for col in ["area_sembrada", "area_cosechada", "produccion", "rendimiento", "anio"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    if "anio" in df.columns:
-        df["anio"] = pd.to_numeric(df["anio"], errors="coerce")
-
-    # Periodo → entero
+    # ── Periodo → entero ──────────────────────────────────
     if "periodo" in df.columns:
         df["periodo_num"] = df["periodo"].apply(parse_periodo)
+    elif "semestre" in df.columns:
+        # El cleaner ya lo convirtió como 'semestre'
+        df["periodo_num"] = df["semestre"]
     elif "periodo_num" not in df.columns:
         df["periodo_num"] = 0
 
-    # Filtros de calidad (solo en entrenamiento)
+    # ── Filtros de calidad (solo entrenamiento) ───────────
     if fit and "rendimiento" in df.columns:
         df = df.dropna(subset=["rendimiento"])
         df = df[df["rendimiento"] > 0]
@@ -89,7 +78,7 @@ def prepare_features(
     df = df.dropna(subset=["area_sembrada", "anio"])
     df = df[df["area_sembrada"].fillna(0) > 0]
 
-    # Encoding categórico
+    # ── Encoding categórico ───────────────────────────────
     if encoders is None:
         encoders = {}
 
@@ -114,7 +103,7 @@ def prepare_features(
             else:
                 df[f"{col}_enc"] = 0
 
-    # Asegurar que todas las feature cols existen
+    # ── Asegurar que todas las features existen ───────────
     for col in FEATURE_COLS:
         if col not in df.columns:
             df[col] = 0
@@ -126,7 +115,7 @@ def prepare_features(
 def domain_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     """
     Agrega variables derivadas de dominio al dataset maestro ETL.
-    Diferente de prepare_features: opera sobre el dataset completo, no por fila.
+    Opera sobre el dataset completo (no por fila).
     """
     df = df.copy()
 
@@ -144,11 +133,11 @@ def domain_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     if "area_cosechada" in df.columns and "area_sembrada" in df.columns:
         df["ratio_cosecha"] = (df["area_cosechada"] / df["area_sembrada"]).clip(0, 1)
 
-    # Impacto El Niño
+    # Impacto El Niño en rendimiento
     if "es_el_nino" in df.columns:
-        rend_nino   = df[df["es_el_nino"] == 1].groupby(["departamento", "cultivo"])["rendimiento"].mean()
-        rend_normal = df[df["es_el_nino"] == 0].groupby(["departamento", "cultivo"])["rendimiento"].mean()
-        impacto = (rend_nino - rend_normal).reset_index().rename(columns={"rendimiento": "impacto_el_nino"})
+        nino   = df[df["es_el_nino"] == 1].groupby(["departamento", "cultivo"])["rendimiento"].mean()
+        normal = df[df["es_el_nino"] == 0].groupby(["departamento", "cultivo"])["rendimiento"].mean()
+        impacto = (nino - normal).reset_index().rename(columns={"rendimiento": "impacto_el_nino"})
         df = df.merge(impacto, on=["departamento", "cultivo"], how="left")
 
     # Categoría de riesgo climático

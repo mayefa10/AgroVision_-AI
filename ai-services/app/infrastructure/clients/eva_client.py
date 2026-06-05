@@ -12,6 +12,53 @@ from .base_client import BaseHttpClient
 
 logger = logging.getLogger(__name__)
 
+# ── Mapa canónico de renombrado de columnas EVA ───────────
+# La API Socrata devuelve nombres con caracteres especiales
+# que varían según la versión del dataset.
+_EVA_RENAME: dict[str, str] = {
+    # Nombres con caracteres especiales (versión Socrata)
+    "a_o":                           "anio",
+    "rea_sembrada":                  "area_sembrada",
+    "rea_cosechada":                 "area_cosechada",
+    "producci_n":                    "produccion",
+    "desagregaci_n_cultivo":         "desagregacion_cultivo",
+    "ciclo_del_cultivo":             "ciclo_cultivo",
+    "estado_f_sico_del_cultivo":     "estado_fisico",
+    "c_digo_del_cultivo":            "codigo_cultivo",
+    "c_digo_dane_departamento":      "codigo_dane_dpto",
+    "c_digo_dane_municipio":         "codigo_dane_mpio",
+    "nombre_cient_fico_del_cultivo": "nombre_cientifico",
+    # Nombres alternativos que puede traer la API
+    "year":          "anio",
+    "area_planted":  "area_sembrada",
+    "area_harvest":  "area_cosechada",
+    "production":    "produccion",
+    "yield":         "rendimiento",
+}
+
+# Columnas numéricas finales (después del renombrado)
+_NUMERIC_COLS = ["area_sembrada", "area_cosechada", "produccion", "rendimiento", "anio"]
+
+
+def _normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aplica el renombrado canónico y convierte tipos numéricos.
+    Se llama en fetch(), fetch_paginated() y fetch_summary()
+    para garantizar columnas consistentes en toda la app.
+    """
+    # Renombrar solo las columnas presentes
+    rename_aplicar = {k: v for k, v in _EVA_RENAME.items() if k in df.columns}
+    if rename_aplicar:
+        df = df.rename(columns=rename_aplicar)
+        logger.debug("EVA rename aplicado: %s", list(rename_aplicar.keys()))
+
+    # Convertir numéricos
+    for col in _NUMERIC_COLS:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    return df
+
 
 class EvaClient(BaseHttpClient):
 
@@ -31,6 +78,7 @@ class EvaClient(BaseHttpClient):
         if cultivo:
             clauses.append(f"upper(cultivo)='{cultivo.upper()}'")
         if anio:
+            # La API usa 'a_o' en el $where aunque ya renombremos localmente
             clauses.append(f"a_o={anio}")
         if extra:
             clauses.append(extra)
@@ -57,11 +105,10 @@ class EvaClient(BaseHttpClient):
         if df.empty:
             return {"success": False, "message": "Sin datos EVA", "data": []}
 
-        numeric_cols = ["area_sembrada", "area_cosechada", "produccion", "rendimiento"]
-        for col in numeric_cols:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
+        # ── Renombrado + conversión de tipos ──────────────
+        df = _normalizar_df(df)
 
+        # ── Estadísticas ──────────────────────────────────
         stats: dict = {}
         if "rendimiento" in df.columns:
             stats["rendimiento_promedio"] = round(df["rendimiento"].mean(skipna=True), 2)
@@ -77,10 +124,14 @@ class EvaClient(BaseHttpClient):
             "source":          "EVA — datos.gov.co",
             "dataset_id":      dataset,
             "total_registros": len(df),
-            "filtros":         {"departamento": departamento, "cultivo": cultivo, "anio": anio},
+            "filtros":         {
+                "departamento": departamento,
+                "cultivo":      cultivo,
+                "anio":         anio,
+            },
             "estadisticas":    stats,
             "data":            df.fillna(0).to_dict(orient="records"),
-            "fetched_at":      datetime.utcnow().isoformat(),
+            "fetched_at":      datetime.now(timezone.utc).isoformat(),
         }
 
     async def fetch_paginated(
@@ -89,8 +140,13 @@ class EvaClient(BaseHttpClient):
         dataset: str = EVA_2019_2024,
         extra_where: str = "rendimiento IS NOT NULL AND rea_sembrada IS NOT NULL",
     ) -> pd.DataFrame:
-        """Descarga masiva paginando de a 1000 registros."""
+        """
+        Descarga masiva paginando de a 1000 registros.
+        Retorna un DataFrame ya con columnas normalizadas y tipos correctos,
+        listo para pasar directo al ETL / cleaner sin transformaciones adicionales.
+        """
         all_data: list[dict] = []
+
         for offset in range(0, limit, 1000):
             params = {
                 "$limit":  1000,
@@ -105,14 +161,21 @@ class EvaClient(BaseHttpClient):
             logger.debug("EVA: %d registros acumulados", len(all_data))
 
         logger.info("EVA descarga completa: %d registros", len(all_data))
-        return pd.DataFrame(all_data)
+
+        if not all_data:
+            return pd.DataFrame()
+
+        # ── Renombrado + conversión de tipos ──────────────
+        df = _normalizar_df(pd.DataFrame(all_data))
+        return df
 
     async def fetch_summary(self, dataset: str = EVA_2019_2024) -> dict:
+        """Resumen nacional: top cultivos y departamentos por producción."""
         params = {
             "$select": (
                 "departamento, cultivo, "
                 "sum(produccion) as produccion_total, "
-                "sum(area_sembrada) as area_total, "
+                "sum(rea_sembrada) as area_total, "
                 "avg(rendimiento) as rendimiento_promedio, "
                 "max(a_o) as ultimo_anio"
             ),
@@ -125,6 +188,15 @@ class EvaClient(BaseHttpClient):
             return {"success": False, "message": "Sin datos", "data": []}
 
         df = pd.DataFrame(data)
+
+        # Renombrar columnas de la proyección SoQL
+        df = df.rename(columns={
+            "produccion_total":      "produccion_total",   # ya viene bien
+            "area_total":            "area_total",
+            "rendimiento_promedio":  "rendimiento_promedio",
+            "ultimo_anio":           "ultimo_anio",
+        })
+
         for col in ["produccion_total", "area_total", "rendimiento_promedio"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").round(2)
@@ -133,7 +205,9 @@ class EvaClient(BaseHttpClient):
             "success":    True,
             "source":     "EVA — datos.gov.co",
             "data":       df.fillna(0).to_dict(orient="records"),
-            "fetched_at": datetime.now(timezone.utc).isoformat()
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
         }
-# Instancia singleton
+
+
+# Instancia singleton — importar desde aquí en los servicios
 eva_client = EvaClient()

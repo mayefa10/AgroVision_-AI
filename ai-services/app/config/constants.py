@@ -116,9 +116,49 @@ ENSO_HISTORICO: dict[int, dict] = {
 
 # ── Rutas de almacenamiento ───────────────────────────────
 
-DATASETS_PATH  = "/app/datasets"
-RAW_PATH       = f"{DATASETS_PATH}/raw"
-PROCESSED_PATH = f"{DATASETS_PATH}/processed"
-FEATURES_PATH  = f"{DATASETS_PATH}/features"
-MODEL_PATH     = "/app/models/rendimiento_model.pkl"
-ENCODERS_PATH  = "/app/models/encoders.pkl"
+DATASETS_PATH   = "/app/datasets"
+RAW_PATH        = f"{DATASETS_PATH}/raw"
+PROCESSED_PATH  = f"{DATASETS_PATH}/processed"
+FEATURES_PATH   = f"{DATASETS_PATH}/features"
+CLEANED_PATH    = f"{DATASETS_PATH}/cleaned"
+REPORTS_PATH    = f"{DATASETS_PATH}/reports"
+MODEL_PATH      = "/app/models/rendimiento_model.pkl"
+ENCODERS_PATH   = "/app/models/encoders.pkl"
+CLEANING_ENCODERS_PATH = "/app/models/cleaning_encoders.json"
+
+# ── Dataset catálogo datos.gov.co ─────────────────────────
+
+CATALOGO_DATASET_ID = "uzcf-b9dh"   # Portal Nacional - SODA2
+CATALOGO_URL        = f"{SOCRATA_BASE}/{CATALOGO_DATASET_ID}.json"
+
+# ── Configuración limpieza de datos ──────────────────────
+
+LIMPIEZA: dict[str, object] = {
+    # Umbral de nulos por columna: si supera este % → eliminar columna
+    "umbral_nulos_cols":  0.60,
+    # Umbral de nulos por fila: si supera este % → eliminar fila
+    "umbral_nulos_filas": 0.70,
+    # IQR multiplicador para outliers
+    "iqr_mult": 1.5,
+    # Z-score umbral para outliers
+    "zscore_umbral": 3.0,
+    # Cardinalidad máxima para One-Hot (si supera → Label Encoding)
+    "max_cardinalidad_onehot": 10,
+    # Columnas que siempre se eliminan (IDs, URLs, metadatos de sistema)
+    "cols_siempre_eliminar": [
+        "url", "api_endpoint", "uid", "owner_uid",
+        "parent_uid", "contact_email", "attribution_link", "row_label",
+    ],
+    # Columnas de fecha a convertir y expandir en features
+    "cols_fecha": [
+        "creation_date",
+        "last_metadata_updated_date",
+        "last_data_updated_date",
+        "informacindedatos_fechaemisinaaaammdd",
+        "informacindedatos_fechaemisinddmmaaaa",
+    ],
+    # Columnas numéricas almacenadas como string
+    "cols_numericas_string": [
+        "visits", "downloads", "column_count", "row_count",
+    ],
+}

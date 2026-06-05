@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.config.constants import NASA_ANNUAL_URL, NASA_DAILY_URL
@@ -32,7 +32,7 @@ class NasaClient(BaseHttpClient):
         departamento: Optional[str] = None,
     ) -> dict:
         """Datos diarios de los últimos `days` días."""
-        end   = datetime.utcnow()
+        end = datetime.now(timezone.utc)
         start = end - timedelta(days=days)
 
         params = {
