@@ -15,15 +15,24 @@ export interface NasaDay {
   humedad: number;
 }
 
+// ── EVA ───────────────────────────────────────────────────
+ 
 export interface EvaRow {
-  municipio?: string;
-  cultivo?: string;
-  area_sembrada?: number;
-  area_cosechada?: number;
-  produccion?: number;
-  rendimiento?: number;
-  a_o?: string;
+  municipio?:      string;
+  cultivo?:        string;
+  area_sembrada?:  number | null;   // null = sin dato en la fuente (no mostrar 0)
+  area_cosechada?: number | null;
+  produccion?:     number | null;
+  rendimiento?:    number | null;
+  /** Campo canónico: el backend renombra a_o → anio */
+  anio?:           string | number;
+  /** Fallback por compatibilidad con versiones anteriores del backend */
+  a_o?:            string;
+  departamento?:   string;
+  grupo_cultivo?:  string;
+  periodo?:        string;
 }
+ 
 
 export interface PredictionPayload {
   region_code: string;

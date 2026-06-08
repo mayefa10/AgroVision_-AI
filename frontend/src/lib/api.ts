@@ -31,26 +31,32 @@ export const api = {
     getRiskSummary: () =>
       fetchJson<{ data: Region[] }>(`${AI_URL}/regions/risk-summary`),
   },
+
   clima: {
-    getNasaData: (region: string, days = 30) =>
-      fetchJson<{ data: NasaDay[]; estadisticas: any }>(
-        `${AI_URL}/clima/nasa/${region}?days=${days}`,
+    // CORREGIDO: el endpoint es /clima/{departamento}, no /clima/nasa/{departamento}
+    getNasaData: (departamento: string, days = 30) =>
+      fetchJson<{ success: boolean; estadisticas: any; data: NasaDay[] }>(
+        `${AI_URL}/clima/${encodeURIComponent(departamento)}?days=${days}`,
       ),
   },
+
   eva: {
-    getData: (departamento: string, cultivo?: string, limit = 20) =>
-      fetchJson<{
-        success: boolean;
-        data: EvaRow[];
-        total_registros: number;
-      }>(
-        `${AI_URL}/eva?departamento=${encodeURIComponent(
-          departamento,
-        )}&limit=${limit}${
-          cultivo ? `&cultivo=${encodeURIComponent(cultivo)}` : ''
-        }`,
-      ),
+    // Pasa departamento, cultivo opcional y limit
+    getData: (departamento: string, cultivo?: string, limit = 20) => {
+      const params = new URLSearchParams({
+        departamento,
+        limit: String(limit),
+      });
+      if (cultivo) params.append('cultivo', cultivo);
+      return fetchJson<{
+        success:          boolean;
+        data:             EvaRow[];
+        total_registros:  number;
+        estadisticas:     Record<string, number>;
+      }>(`${AI_URL}/eva?${params.toString()}`);
+    },
   },
+
   predict: {
     runPrediction: (payload: PredictionPayload) =>
       fetchJson<PredictionResult>(`${AI_URL}/predict-risk`, {
