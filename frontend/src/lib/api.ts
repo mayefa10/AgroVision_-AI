@@ -49,10 +49,10 @@ export const api = {
       });
       if (cultivo) params.append('cultivo', cultivo);
       return fetchJson<{
-        success:          boolean;
-        data:             EvaRow[];
-        total_registros:  number;
-        estadisticas:     Record<string, number>;
+        success: boolean;
+        data: EvaRow[];
+        total_registros: number;
+        estadisticas: Record<string, number>;
       }>(`${AI_URL}/eva?${params.toString()}`);
     },
   },
@@ -63,5 +63,35 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
+  },
+  openweather: {
+    getCurrent: (departamento: string) =>
+      fetchJson<{
+        success: boolean;
+        ciudad: string;
+        departamento: string;
+        condiciones: Record<string, number | string>;
+        coordenadas: { lat: number; lng: number };
+        fetched_at: string;
+      }>(`${AI_URL}/openweather/${encodeURIComponent(departamento)}`),
+
+    getTodos: () =>
+      fetchJson<{ success: boolean; total: number; data: unknown[] }>(
+        `${AI_URL}/openweather`,
+      ),
+  },
+
+  enso: {
+    getActual: () => fetchJson(`${AI_URL}/enso`),
+
+    getHistorico: (anios = 5) =>
+      fetchJson(`${AI_URL}/enso/historico?anios=${anios}`),
+  },
+
+  escenarios: {
+    get: (departamento: string, cultivo: string) => {
+      const params = new URLSearchParams({ departamento, cultivo });
+      return fetchJson(`${AI_URL}/escenarios?${params}`);
+    },
   },
 };

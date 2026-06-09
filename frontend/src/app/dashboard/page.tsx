@@ -7,6 +7,9 @@ import { AgricolaSection } from "@/components/features/AgricolaSection";
 import { MapSection } from "@/components/features/map/MapSection";
 import { AlertasSection } from "@/components/features/AlertasSection";
 import { PrediccionSection } from "@/components/features/PrediccionSection";
+import { OpenWeatherSection } from "@/components/features/OpenWeatherSection";
+import { EnsoSection }        from "@/components/features/EnsoSection";
+import { EscenariosSection }  from "@/components/features/EscenariosSection";
 
 const SECTIONS: Record<string, { title: string; component: React.ReactNode }> = {
   overview: { title: "Resumen General", component: <OverviewSection /> },
@@ -15,6 +18,10 @@ const SECTIONS: Record<string, { title: string; component: React.ReactNode }> = 
   alertas: { title: "Alertas Climáticas", component: <AlertasSection /> },
   mapa: { title: "Mapa de Riesgo", component: <MapSection /> },
   prediccion: { title: "Predicción IA", component: <PrediccionSection /> },
+  monitor_enso:{ title:"Monitoreo Enso", component:<EnsoSection/> },
+  openWeather:{ title:"Open weather", component:<OpenWeatherSection/> },
+  esenarios_section:{ title:"Escenarios", component:<EscenariosSection/> },
+
 };
 
 export default function DashboardPage() {

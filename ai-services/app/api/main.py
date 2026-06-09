@@ -19,6 +19,10 @@ from app.api.routers import (
 from app.config.logging_config import setup_logging
 from app.config.settings import get_settings
 from app.infrastructure.cache.redis_client import get_cache
+from app.api.routers.enso        import enso_router
+from app.api.routers.openweather import openweather_router
+from app.api.routers.escenarios  import escenarios_router
+
 
 
 @asynccontextmanager
@@ -62,5 +66,8 @@ def create_app() -> FastAPI:
         etl_router,
     ]:
         app.include_router(router)
+        app.include_router(enso_router)
+        app.include_router(openweather_router)
+        app.include_router(escenarios_router)
 
     return app

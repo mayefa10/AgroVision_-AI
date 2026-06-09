@@ -1,36 +1,40 @@
-"use client"
+"use client";
 import type { RiskLevel, NasaDay, ClimaTab } from "@/types";
 
 export const AI_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || "http://localhost:8000";
 
 export const RISK_COLORS: Record<RiskLevel, string> = {
-  low: "#22c55e",
-  medium: "#f59e0b",
-  high: "#f97316",
+  low:      "#22c55e",
+  medium:   "#f59e0b",
+  high:     "#f97316",
   critical: "#ef4444",
 };
 
 export const RISK_BG: Record<RiskLevel, string> = {
-  low: "#dcfce7",
-  medium: "#fef3c7",
-  high: "#ffedd5",
+  low:      "#dcfce7",
+  medium:   "#fef3c7",
+  high:     "#ffedd5",
   critical: "#fee2e2",
 };
 
 export const RISK_LABELS: Record<RiskLevel, string> = {
-  low: "Bajo",
-  medium: "Medio",
-  high: "Alto",
+  low:      "Bajo",
+  medium:   "Medio",
+  high:     "Alto",
   critical: "Crítico",
 };
 
+// ── Navegación — orden para el concurso ──────────────────
 export const NAV_ITEMS = [
-  { id: "overview", label: "Resumen", icon: "◈" },
-  { id: "clima", label: "Clima", icon: "◉" },
-  { id: "agricola", label: "Agrícola", icon: "◐" },
-  { id: "alertas",    label: "Alertas",    icon: "🔔" },
-  { id: "mapa",       label: "Mapa",       icon: "◎" },
-  { id: "prediccion", label: "Predicción", icon: "◑" },
+  { id: "overview",     label: "Resumen",       icon: "◈" },
+  { id: "clima",        label: "Clima",         icon: "◉" },
+  { id: "openweather",  label: "Tiempo Real",   icon: "🌤️" },  // NUEVO
+  { id: "enso",         label: "Monitor ENSO",  icon: "🌊" },  // NUEVO
+  { id: "agricola",     label: "Agrícola",      icon: "◐" },
+  { id: "alertas",      label: "Alertas",       icon: "🔔" },
+  { id: "escenarios",   label: "Escenarios IA", icon: "🤖" },  // NUEVO
+  { id: "mapa",         label: "Mapa",          icon: "◎" },
+  { id: "prediccion",   label: "Predicción",    icon: "◑" },
 ] as const;
 
 export const DEPARTMENTS = [
@@ -45,7 +49,7 @@ export const DEPARTMENTS = [
 export const CLIMA_TABS: ClimaTab[] = ["Temperatura", "Precipitación", "Humedad"];
 
 export const CLIMA_KEY: Record<ClimaTab, keyof NasaDay> = {
-  Temperatura: "temperatura",
+  Temperatura:   "temperatura",
   Precipitación: "precipitacion",
-  Humedad: "humedad",
+  Humedad:       "humedad",
 };
