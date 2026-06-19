@@ -4,15 +4,21 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.domain.schemas import RendimientoRequest
-from services.ml_service import predict, status, train
+from services.ml_service import metrics, predict, status, train
 
 router = APIRouter(prefix="/ml", tags=["ML"])
 
 
 @router.get("/status")
 def ml_status():
-    """Estado del modelo: entrenado o pendiente."""
+    """Estado del modelo: entrenado o pendiente, incluye métricas si existen."""
     return status()
+
+
+@router.get("/metrics")
+def ml_metrics():
+    """Métricas detalladas del último entrenamiento (MAE, R², feature importance)."""
+    return metrics()
 
 
 @router.post("/train")

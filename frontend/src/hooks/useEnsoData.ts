@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AI_URL } from "@/lib/constants";
 
 export interface EnsoActual {
@@ -44,18 +44,27 @@ export function useEnsoData() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    fetch(`${AI_URL}/enso`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((json) => { if (mounted) setData(json); })
-      .catch((e)   => { if (mounted) setError(e.message); })
-      .finally(()  => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
+  const fetchData = useCallback(async (signal: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch(`${AI_URL}/enso`, { signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json = await r.json();
+      setData(json);
+    } catch (e: unknown) {
+      if ((e as Error).name === "AbortError") return;
+      setError((e as Error).message ?? "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
   return { data, loading, error };
 }

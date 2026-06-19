@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from app.ml.inference.predictor import model_is_trained, predict_rendimiento
-from app.ml.training.trainer import run_training
+from app.ml.training.trainer import load_metrics, run_training
 
 
 async def train() -> dict:
@@ -22,7 +22,23 @@ def predict(
 
 def status() -> dict:
     trained = model_is_trained()
+    metrics = load_metrics() if trained else None
+
     return {
         "model_trained": trained,
         "message": "Listo para predecir" if trained else "Llama a POST /ml/train primero",
+        # Incluye un resumen de métricas directamente en /ml/status
+        # para que el frontend no necesite dos llamadas.
+        "metrics": metrics,
     }
+
+
+def metrics() -> dict:
+    """Métricas detalladas del último entrenamiento."""
+    data = load_metrics()
+    if data is None:
+        return {
+            "success": False,
+            "message": "El modelo no ha sido entrenado todavía. Llama a POST /ml/train.",
+        }
+    return data

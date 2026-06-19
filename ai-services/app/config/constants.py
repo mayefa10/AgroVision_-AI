@@ -124,6 +124,7 @@ CLEANED_PATH    = f"{DATASETS_PATH}/cleaned"
 REPORTS_PATH    = f"{DATASETS_PATH}/reports"
 MODEL_PATH      = "/app/models/rendimiento_model.pkl"
 ENCODERS_PATH   = "/app/models/encoders.pkl"
+METRICS_PATH    = "/app/models/metrics.json"
 CLEANING_ENCODERS_PATH = "/app/models/cleaning_encoders.json"
 
 # ── Dataset catálogo datos.gov.co ─────────────────────────

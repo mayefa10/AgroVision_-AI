@@ -1,9 +1,16 @@
 # ── Escenarios IA Router ──────────────────────────────────
+"""AgroVision AI — Router Escenarios IA."""
+from __future__ import annotations
+
 import asyncio
+from datetime import datetime
+
+from fastapi import APIRouter, Query
+
+from app.config.constants import DEPARTAMENTOS
 from app.infrastructure.clients.noaa_client import noaa_client
 from app.infrastructure.clients.nasa_client import NasaClient
-from app.config.constants import DEPARTAMENTOS
-from app.ml.inference.predictor import predict_rendimiento, model_is_trained
+from app.ml.inference.predictor import model_is_trained, predict_rendimiento
 
 escenarios_router = APIRouter(prefix="/escenarios", tags=["Escenarios IA"])
 
@@ -19,13 +26,11 @@ async def escenarios_ia(
       - NASA POWER (clima reciente)
       - Modelo ML de rendimiento
     """
-    
-
     dept_upper = departamento.upper()
     cult_upper = cultivo.upper()
     info = DEPARTAMENTOS.get(dept_upper, {"lat": 4.711, "lng": -74.072})
 
-    # Obtener datos en paralelo
+    # Obtener ENSO y clima en paralelo
     enso_data, nasa_data = await asyncio.gather(
         noaa_client.fetch_escenarios(dept_upper, cult_upper),
         NasaClient().fetch_daily(info["lat"], info["lng"], days=30, departamento=dept_upper),
@@ -43,16 +48,14 @@ async def escenarios_ia(
             periodo=1,
         )
 
-    # Enriquecer escenarios con clima actual
     clima_stats = nasa_data.get("estadisticas", {}) if nasa_data.get("success") else {}
 
     return {
-        "success":        True,
-        "departamento":   dept_upper,
-        "cultivo":        cult_upper,
-        "clima_actual":   clima_stats,
-        "enso":           enso_data,
+        "success":         True,
+        "departamento":    dept_upper,
+        "cultivo":         cult_upper,
+        "clima_actual":    clima_stats,
+        "enso":            enso_data,
         "prediccion_base": prediccion_base,
-        "fetched_at":     __import__("app.utils.dates", fromlist=["utcnow_iso"]).utcnow_iso()
-        if False else __import__("datetime").datetime.utcnow().isoformat(),
+        "fetched_at":      datetime.utcnow().isoformat(),
     }

@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "registros_entrenamiento": 3717,
+  "registros_test": 930,
+  "registros_totales": 4647,
+  "mae": 3.628,
+  "r2": 0.577,
+  "feature_importance": {
+    "departamento_enc": 0.1011,
+    "cultivo_enc": 0.4007,
+    "grupo_cultivo_enc": 0.3164,
+    "area_sembrada": 0.1818,
+    "anio": 0.0,
+    "periodo_num": 0.0
+  },
+  "model_path": "/app/models/rendimiento_model.pkl",
+  "trained_at": "2026-06-18T00:05:55.822197+00:00"
+}

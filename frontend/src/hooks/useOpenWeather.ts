@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AI_URL } from "@/lib/constants";
 
 export interface WeatherCondiciones {
@@ -29,27 +29,32 @@ export function useOpenWeather(departamento: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(async (signal: AbortSignal) => {
     if (!departamento) return;
-    let mounted = true;
     setLoading(true);
     setError(null);
-
-    fetch(`${AI_URL}/openweather/${encodeURIComponent(departamento)}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((json) => {
-        if (!mounted) return;
-        if (!json.success) throw new Error(json.message ?? "Sin datos");
-        setData(json);
-      })
-      .catch((e) => { if (mounted) setError(e.message); })
-      .finally(()  => { if (mounted) setLoading(false); });
-
-    return () => { mounted = false; };
+    try {
+      const r = await fetch(
+        `${AI_URL}/openweather/${encodeURIComponent(departamento)}`,
+        { signal }
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json = await r.json();
+      if (!json.success) throw new Error(json.message ?? "Sin datos");
+      setData(json);
+    } catch (e: unknown) {
+      if ((e as Error).name === "AbortError") return;
+      setError((e as Error).message ?? "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
   }, [departamento]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
   return { data, loading, error };
 }

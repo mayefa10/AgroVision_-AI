@@ -34,6 +34,11 @@ const TENDENCIA_ICON: Record<string, string> = {
   estable: '→',
 };
 
+function safeFixed(val: unknown, dec = 2): string {
+  const n = Number(val);
+  return isNaN(n) ? '—' : n.toFixed(dec);
+}
+
 export function EnsoSection() {
   const { data, loading, error } = useEnsoData();
 
@@ -60,20 +65,17 @@ export function EnsoSection() {
     );
   }
 
-  const {
-    estado_actual: e,
-    probabilidades: p,
-    impacto_colombia: imp,
-    historico_oni: hist,
-  } = data;
+  const e = data.estado_actual;
+  const p = data.probabilidades;
+  const imp = data.impacto_colombia;
+  const hist = data.historico_oni ?? [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* ── Estado actual ── */}
+      {/* ── Estado actual + probabilidades ── */}
       <div
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
       >
-        {/* Card principal ENSO */}
         <Card>
           <SectionHeader
             title="Monitor ENSO"
@@ -109,7 +111,8 @@ export function EnsoSection() {
                   marginTop: '0.25rem',
                 }}
               >
-                {INTENSIDAD_LABEL[e.intensidad]} · {e.season} {e.anio}
+                {INTENSIDAD_LABEL[e.intensidad] ?? e.intensidad} · {e.season}{' '}
+                {e.anio}
               </div>
               <div
                 style={{
@@ -126,15 +129,11 @@ export function EnsoSection() {
                         : '#71717a',
                 }}
               >
-                <span style={{ fontSize: '1rem' }}>
-                  {TENDENCIA_ICON[e.tendencia]}
-                </span>
-                Tendencia: {e.tendencia}
+                {TENDENCIA_ICON[e.tendencia] ?? '→'} Tendencia: {e.tendencia}
               </div>
             </div>
           </div>
 
-          {/* ONI badge */}
           <div
             style={{
               marginTop: '1.25rem',
@@ -166,13 +165,12 @@ export function EnsoSection() {
               }}
             >
               {e.oni_index > 0 ? '+' : ''}
-              {e.oni_index.toFixed(2)}
+              {safeFixed(e.oni_index)}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#a1a1aa' }}>°C</span>
           </div>
         </Card>
 
-        {/* Probabilidades */}
         <Card>
           <div
             style={{
@@ -210,14 +208,7 @@ export function EnsoSection() {
                   marginBottom: '0.3rem',
                 }}
               >
-                <span
-                  style={{
-                    fontSize: '0.82rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                  }}
-                >
+                <span style={{ fontSize: '0.82rem' }}>
                   {item.icon} {item.label}
                 </span>
                 <span
@@ -273,13 +264,7 @@ export function EnsoSection() {
             marginBottom: '1rem',
           }}
         >
-          <div
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              marginBottom: '0.25rem',
-            }}
-          >
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
             {imp.alerta}
           </div>
         </div>
@@ -337,7 +322,7 @@ export function EnsoSection() {
         >
           💡 {imp.recomendacion}
         </div>
-        {imp.cultivos_riesgo.length > 0 && (
+        {(imp.cultivos_riesgo ?? []).length > 0 && (
           <div
             style={{
               display: 'flex',
@@ -373,10 +358,18 @@ export function EnsoSection() {
         <Card>
           <SectionHeader
             title="Índice ONI histórico"
-            sub="Últimos 3 años · NOAA/CPC"
+            sub="Últimos años · NOAA/CPC"
             badge="ONI"
           />
-          <div style={{ height: 220, marginTop: '1rem' }}>
+          {/* BUG CORREGIDO: width y minHeight explícitos para Recharts */}
+          <div
+            style={{
+              width: '100%',
+              height: 220,
+              minHeight: 220,
+              marginTop: '1rem',
+            }}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={hist}
@@ -406,12 +399,11 @@ export function EnsoSection() {
                 />
                 <Tooltip
                   formatter={(v) => {
-                    const value = Number(v ?? 0);
-                    return [
-                      `${value > 0 ? '+' : ''}${value.toFixed(2)}°C`,
-                      'ONI',
-                    ];
+                    const n = Number(v ?? 0);
+                    return [`${n > 0 ? '+' : ''}${n.toFixed(2)}°C`, 'ONI'];
                   }}
+                  labelFormatter={(l) => `Trimestre: ${l}`}
+                  contentStyle={{ fontSize: '0.78rem', borderRadius: 8 }}
                 />
                 <ReferenceLine
                   y={0.5}
