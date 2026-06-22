@@ -52,6 +52,7 @@ model Dataset {
   name      String
   source    String
   category  DataCategory
+  cacheKey  String?      @unique          // ← AGREGAR esta línea
   filePath  String?
   url       String?
   regionId  String?

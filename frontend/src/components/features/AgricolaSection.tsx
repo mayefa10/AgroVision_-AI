@@ -1,30 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Table } from "@/components/ui/Table";
 import { useEvaData } from "@/hooks/useEvaData";
+import { useEvaDepartamentos } from "@/hooks/useEvaDepartamentos";
 import type { EvaRow } from "@/types";
-
-// ── Opciones de filtro ────────────────────────────────────
-
-const DEPARTAMENTOS = [
-  "ANTIOQUIA", "ATLANTICO", "BOLIVAR", "BOYACA", "CALDAS",
-  "CAQUETA", "CAUCA", "CESAR", "CHOCO", "CORDOBA",
-  "CUNDINAMARCA", "GUAJIRA", "HUILA", "MAGDALENA", "META",
-  "NARINO", "NORTE DE SANTANDER", "SANTANDER", "SUCRE",
-  "TOLIMA", "VALLE DEL CAUCA",
-];
 
 const CULTIVOS = [
   "Todos", "MAIZ", "ARROZ", "PAPA", "CAFE", "FRIJOL",
-  "YUCA", "CANA DE AZUCAR", "PLATANO", "CACAO", "SORGO",
+  "YUCA", "CAÑA DE AZUCAR", "PLATANO", "CACAO", "SORGO",
   "SOYA", "PALMA", "AGUACATE", "TOMATE",
 ];
 
-// ── Helpers de formato ─────────────────────────────────────
-// Muestran "—" cuando el valor es null/undefined en vez de "0 ha"
+// ── Helpers de formato ────────────────────────────────────
 
 function fmtArea(val?: number | null): string {
   if (val == null) return "—";
@@ -41,41 +31,44 @@ function fmtRend(val?: number | null): string {
   return `${Number(val).toFixed(2)} t/ha`;
 }
 
-function toTitleCase(str?: string): string {
-  if (!str) return "—";
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+function toTitleCase(str: string): string {
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
-// ── Columnas de la tabla ──────────────────────────────────
+// ── Columnas ──────────────────────────────────────────────
 
 const columns = [
   {
     key: "municipio",
     header: "Municipio",
-    render: (r: EvaRow) => toTitleCase(r.municipio),
+    render: (r: EvaRow) => r.municipio ? toTitleCase(r.municipio) : "—",
   },
   {
     key: "cultivo",
     header: "Cultivo",
-    render: (r: EvaRow) => toTitleCase(r.cultivo),
+    render: (r: EvaRow) => r.cultivo ? toTitleCase(r.cultivo) : "—",
   },
   {
     key: "area_sembrada",
     header: "Área Sembrada",
     className: "font-mono text-xs",
-    render: (r: EvaRow) => fmtArea(r.area_sembrada),   // sin || 0
+    render: (r: EvaRow) => fmtArea(r.area_sembrada),
   },
   {
     key: "area_cosechada",
     header: "Área Cosechada",
     className: "font-mono text-xs",
-    render: (r: EvaRow) => fmtArea(r.area_cosechada),  // sin || 0
+    render: (r: EvaRow) => fmtArea(r.area_cosechada),
   },
   {
     key: "produccion",
     header: "Producción",
     className: "font-mono text-xs",
-    render: (r: EvaRow) => fmtTon(r.produccion),       // sin || 0
+    render: (r: EvaRow) => fmtTon(r.produccion),
   },
   {
     key: "rendimiento",
@@ -94,13 +87,25 @@ const columns = [
 // ── Componente ────────────────────────────────────────────
 
 export function AgricolaSection() {
-  const [departamento, setDepartamento] = useState("ANTIOQUIA");
+  const { departamentos, loading: loadingDptos } = useEvaDepartamentos();
+
+  const [departamento, setDepartamento] = useState("");
   const [cultivo, setCultivo]           = useState("Todos");
 
-  const cultivoParam                            = cultivo === "Todos" ? undefined : cultivo;
-  const { data: evaData, loading, totalRegistros } = useEvaData(departamento, cultivoParam);
+  // Cuando carguen los departamentos, seleccionar el primero automáticamente
+  useEffect(() => {
+    if (departamentos.length > 0 && !departamento) {
+      setDepartamento(departamentos[0]);
+    }
+  }, [departamentos, departamento]);
 
-  const labelDpto    = toTitleCase(departamento);
+  const cultivoParam = cultivo === "Todos" ? undefined : cultivo;
+  const { data: evaData, loading: loadingData, totalRegistros } = useEvaData(
+    departamento,
+    cultivoParam,
+  );
+
+  const loading      = loadingDptos || (loadingData && !!departamento);
   const labelCultivo = cultivo === "Todos" ? "todos los cultivos" : toTitleCase(cultivo);
 
   return (
@@ -115,7 +120,7 @@ export function AgricolaSection() {
         {/* ── Filtros ── */}
         <div className="flex flex-wrap gap-3 mb-4">
 
-          {/* Departamento */}
+          {/* Departamento — cargado dinámicamente desde el backend */}
           <div className="flex flex-col gap-1">
             <label
               htmlFor="eva-departamento"
@@ -129,19 +134,31 @@ export function AgricolaSection() {
               aria-label="Filtrar por departamento"
               value={departamento}
               onChange={(e) => setDepartamento(e.target.value)}
+              disabled={loadingDptos}
               className="
                 bg-zinc-900 border border-zinc-700 rounded-md
                 px-3 py-1.5 text-sm text-zinc-100
                 focus:outline-none focus:ring-1 focus:ring-emerald-500
-                cursor-pointer min-w-[180px]
+                cursor-pointer min-w-[200px]
+                disabled:opacity-50 disabled:cursor-not-allowed
               "
             >
-              {DEPARTAMENTOS.map((d) => (
-                <option key={d} value={d}>
-                  {toTitleCase(d)}
-                </option>
-              ))}
+              {loadingDptos ? (
+                <option>Cargando...</option>
+              ) : (
+                departamentos.map((d) => (
+                  <option key={d} value={d}>
+                    {toTitleCase(d)}
+                  </option>
+                ))
+              )}
             </select>
+            {/* Badge que muestra cuántos departamentos tienen datos */}
+            {!loadingDptos && departamentos.length > 0 && (
+              <span className="text-xs text-zinc-500 font-mono">
+                {departamentos.length} departamentos con datos
+              </span>
+            )}
           </div>
 
           {/* Cultivo */}
@@ -162,7 +179,7 @@ export function AgricolaSection() {
                 bg-zinc-900 border border-zinc-700 rounded-md
                 px-3 py-1.5 text-sm text-zinc-100
                 focus:outline-none focus:ring-1 focus:ring-emerald-500
-                cursor-pointer min-w-[140px]
+                cursor-pointer min-w-[160px]
               "
             >
               {CULTIVOS.map((c) => (
@@ -192,14 +209,16 @@ export function AgricolaSection() {
                 {totalRegistros != null ? ` de ${totalRegistros}` : ""} registros
               </span>
               <span className="text-zinc-500">
-                {labelDpto} · {labelCultivo}
+                {departamento ? toTitleCase(departamento) : "—"} · {labelCultivo}
               </span>
             </div>
           </>
         ) : (
           <div className="py-12 text-center text-zinc-400">
-            Sin datos para{" "}
-            <span className="text-zinc-200">{labelDpto}</span>
+            Sin datos disponibles para{" "}
+            <span className="text-zinc-200">
+              {departamento ? toTitleCase(departamento) : "—"}
+            </span>
             {cultivo !== "Todos" && (
               <> — <span className="text-zinc-200">{toTitleCase(cultivo)}</span></>
             )}

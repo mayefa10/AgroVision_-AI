@@ -22,7 +22,7 @@ from app.infrastructure.cache.redis_client import get_cache
 from app.api.routers.enso        import enso_router
 from app.api.routers.openweather import openweather_router
 from app.api.routers.escenarios  import escenarios_router
-
+from app.infrastructure.persistence.postgres_client import close_pool
 
 
 @asynccontextmanager
@@ -33,7 +33,8 @@ async def lifespan(app: FastAPI):
     cache = get_cache()
     await cache.connect()
     yield
-    await cache.close()
+    """await cache.close()"""
+    await close_pool()
 
 
 def create_app() -> FastAPI:

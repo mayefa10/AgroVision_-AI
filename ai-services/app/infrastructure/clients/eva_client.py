@@ -1,4 +1,4 @@
-"""AgroVision AI — Cliente EVA (datos.gov.co)."""
+"""AgroVision AI — Cliente EVA (datos.gov.co) con cache PostgreSQL."""
 from __future__ import annotations
 
 import logging
@@ -8,13 +8,12 @@ from typing import Optional
 import pandas as pd
 
 from app.config.constants import EVA_2019_2024, SOCRATA_BASE
+from app.infrastructure.persistence.postgres_client import get_or_fetch
 from .base_client import BaseHttpClient
 
 logger = logging.getLogger(__name__)
 
 # ── Mapa canónico de renombrado ───────────────────────────
-# La API Socrata devuelve nombres con caracteres especiales
-# que varían según la versión del dataset.
 _EVA_RENAME: dict[str, str] = {
     "a_o":                           "anio",
     "rea_sembrada":                  "area_sembrada",
@@ -27,7 +26,6 @@ _EVA_RENAME: dict[str, str] = {
     "c_digo_dane_departamento":      "codigo_dane_dpto",
     "c_digo_dane_municipio":         "codigo_dane_mpio",
     "nombre_cient_fico_del_cultivo": "nombre_cientifico",
-    # Nombres alternativos posibles
     "year":         "anio",
     "area_planted": "area_sembrada",
     "area_harvest": "area_cosechada",
@@ -35,46 +33,26 @@ _EVA_RENAME: dict[str, str] = {
     "yield":        "rendimiento",
 }
 
-# Columnas que deben ser numéricas tras el renombrado
 _NUMERIC_COLS = ["area_sembrada", "area_cosechada", "produccion", "rendimiento", "anio"]
-
-# Columnas que NO deben rellenarse con 0 cuando son nulas —
-# son métricas reales y un 0 es engañoso para el usuario/modelo.
 _NO_FILLNA_ZERO = {"area_sembrada", "area_cosechada", "produccion"}
 
 
 def _normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Renombra columnas al esquema canónico y convierte tipos numéricos.
-    Llamado en fetch(), fetch_paginated() y fetch_summary() para
-    garantizar columnas consistentes en toda la app.
-    """
     rename_aplicar = {k: v for k, v in _EVA_RENAME.items() if k in df.columns}
     if rename_aplicar:
         df = df.rename(columns=rename_aplicar)
-        logger.debug("EVA rename aplicado: %s", list(rename_aplicar.keys()))
 
     for col in _NUMERIC_COLS:
         if col in df.columns:
-            # errors='coerce' → strings vacíos / "N/A" se convierten en NaN (no 0)
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
     return df
 
 
 def _safe_fillna(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Rellena nulos de forma selectiva antes de serializar a dict:
-      - Columnas métricas (area, produccion) → None  (el frontend muestra "—")
-      - Resto de columnas object → "" para evitar 'null' en JSON
-      - Numéricos no métricos → 0
-
-    Así evitamos que áreas reales de 0 ha engañen al usuario.
-    """
     df = df.copy()
     for col in df.columns:
         if col in _NO_FILLNA_ZERO:
-            # Mantener NaN → se serializa como None/null en JSON
             continue
         elif df[col].dtype == object:
             df[col] = df[col].fillna("")
@@ -101,7 +79,6 @@ class EvaClient(BaseHttpClient):
         if cultivo:
             clauses.append(f"upper(cultivo)='{cultivo.upper()}'")
         if anio:
-            # La API usa 'a_o' en el $where aunque renombremos localmente
             clauses.append(f"a_o={anio}")
         if extra:
             clauses.append(extra)
@@ -115,11 +92,30 @@ class EvaClient(BaseHttpClient):
         limit: int = 1000,
         dataset: str = EVA_2019_2024,
     ) -> dict:
+        """
+        Wrapper con cache: la llamada real a Socrata vive en _fetch_real().
+        get_or_fetch() decide si usar cache o llamar la API según el TTL.
+        """
+        cache_key = f"eva:{(departamento or 'ALL').upper()}:{(cultivo or 'ALL').upper()}:{anio or 'ALL'}"
+
+        return await get_or_fetch(
+            cache_key=cache_key,
+            source="eva",
+            category="AGRICULTURA",
+            fetch_fn=lambda: self._fetch_real(departamento, cultivo, anio, limit, dataset),
+        )
+
+    async def _fetch_real(
+        self,
+        departamento: Optional[str],
+        cultivo: Optional[str],
+        anio: Optional[int],
+        limit: int,
+        dataset: str,
+    ) -> dict:
+        """Lógica original — llamada directa a la API de Socrata (datos.gov.co)."""
         params: dict = {"$limit": limit, "$order": "a_o DESC"}
 
-        # Filtro base: solo registros con rendimiento válido
-        # NO filtramos area_sembrada aquí — hay registros legítimos sin área
-        # registrada en la fuente (especialmente años recientes).
         where_clauses = ["rendimiento IS NOT NULL", "rendimiento > 0"]
         extra = self._build_where(departamento, cultivo, anio)
         if extra:
@@ -134,10 +130,8 @@ class EvaClient(BaseHttpClient):
         if df.empty:
             return {"success": False, "message": "Sin datos EVA", "data": []}
 
-        # ── Renombrado + conversión de tipos ──────────────
         df = _normalizar_df(df)
 
-        # ── Estadísticas (ignoran NaN automáticamente) ────
         stats: dict = {}
         if "rendimiento" in df.columns:
             stats["rendimiento_promedio"] = round(df["rendimiento"].mean(skipna=True), 2)
@@ -156,15 +150,14 @@ class EvaClient(BaseHttpClient):
             "source":          "EVA — datos.gov.co",
             "dataset_id":      dataset,
             "total_registros": len(df),
-            "filtros":         {
+            "filtros": {
                 "departamento": departamento,
                 "cultivo":      cultivo,
                 "anio":         anio,
             },
-            "estadisticas":    stats,
-            # _safe_fillna: métricas nulas quedan null (no 0) en el JSON
-            "data":            _safe_fillna(df).to_dict(orient="records"),
-            "fetched_at":      datetime.now(timezone.utc).isoformat(),
+            "estadisticas": stats,
+            "data":         _safe_fillna(df).to_dict(orient="records"),
+            "fetched_at":   datetime.now(timezone.utc).isoformat(),
         }
 
     async def fetch_paginated(
@@ -174,13 +167,8 @@ class EvaClient(BaseHttpClient):
         extra_where: str = "rendimiento IS NOT NULL AND rendimiento > 0",
     ) -> pd.DataFrame:
         """
-        Descarga masiva paginando de a 1000 registros.
-        Retorna DataFrame con columnas canónicas y tipos correctos.
-
-        Cambio respecto a la versión anterior:
-          - Ya NO filtra 'rea_sembrada IS NOT NULL' para no perder
-            registros válidos con área sin reportar en la fuente.
-          - Sí filtra rendimiento > 0 para excluir filas sin valor útil.
+        Descarga masiva para entrenamiento ML — NO usa cache PostgreSQL
+        porque el entrenamiento siempre debe usar los datos más recientes.
         """
         all_data: list[dict] = []
 
@@ -195,7 +183,6 @@ class EvaClient(BaseHttpClient):
             if not batch:
                 break
             all_data.extend(batch)
-            logger.debug("EVA: %d registros acumulados", len(all_data))
 
         logger.info("EVA descarga completa: %d registros", len(all_data))
 
@@ -205,7 +192,17 @@ class EvaClient(BaseHttpClient):
         return _normalizar_df(pd.DataFrame(all_data))
 
     async def fetch_summary(self, dataset: str = EVA_2019_2024) -> dict:
-        """Resumen nacional: top cultivos y departamentos por producción."""
+        """Resumen nacional — con cache propio."""
+        cache_key = f"eva:summary:{dataset}"
+
+        return await get_or_fetch(
+            cache_key=cache_key,
+            source="eva",
+            category="AGRICULTURA",
+            fetch_fn=lambda: self._fetch_summary_real(dataset),
+        )
+
+    async def _fetch_summary_real(self, dataset: str) -> dict:
         params = {
             "$select": (
                 "departamento, cultivo, "
@@ -236,5 +233,4 @@ class EvaClient(BaseHttpClient):
         }
 
 
-# Instancia singleton
 eva_client = EvaClient()
