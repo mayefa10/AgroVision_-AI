@@ -6,7 +6,7 @@ from app.ml.training.trainer import load_metrics, run_training
 
 
 async def train() -> dict:
-    return await run_training()
+    return await run_training(limit=20000)
 
 
 def predict(

@@ -49,6 +49,30 @@ def _normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _deduplicar(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Elimina registros duplicados por municipio + cultivo + anio + periodo.
+    La API Socrata puede devolver el mismo registro dos veces cuando un
+    municipio reporta por semestre y también como anual.
+    Conserva el registro más completo (keep='last' tras ordenar por rendimiento).
+    """
+    cols_clave = [c for c in ["municipio", "cultivo", "anio", "periodo_num"] if c in df.columns]
+    if not cols_clave:
+        return df
+
+    antes = len(df)
+    df = (
+        df
+        .sort_values("rendimiento", ascending=True, na_position="first")
+        .drop_duplicates(subset=cols_clave, keep="last")
+        .reset_index(drop=True)
+    )
+    eliminados = antes - len(df)
+    if eliminados > 0:
+        logger.info("EVA deduplicación: %d duplicados eliminados (%d → %d)", eliminados, antes, len(df))
+    return df
+
+
 def _safe_fillna(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     for col in df.columns:
@@ -131,6 +155,7 @@ class EvaClient(BaseHttpClient):
             return {"success": False, "message": "Sin datos EVA", "data": []}
 
         df = _normalizar_df(df)
+        df = _deduplicar(df)
 
         stats: dict = {}
         if "rendimiento" in df.columns:
@@ -189,7 +214,9 @@ class EvaClient(BaseHttpClient):
         if not all_data:
             return pd.DataFrame()
 
-        return _normalizar_df(pd.DataFrame(all_data))
+        df = _normalizar_df(pd.DataFrame(all_data))
+        df = _deduplicar(df)
+        return df
 
     async def fetch_summary(self, dataset: str = EVA_2019_2024) -> dict:
         """Resumen nacional — con cache propio."""

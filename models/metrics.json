@@ -1,18 +1,18 @@
 {
   "success": true,
-  "registros_entrenamiento": 3717,
-  "registros_test": 930,
-  "registros_totales": 4647,
-  "mae": 3.628,
-  "r2": 0.577,
+  "registros_entrenamiento": 9741,
+  "registros_test": 2436,
+  "registros_totales": 12177,
+  "mae": 3.415,
+  "r2": 0.604,
   "feature_importance": {
-    "departamento_enc": 0.1011,
-    "cultivo_enc": 0.4007,
-    "grupo_cultivo_enc": 0.3164,
-    "area_sembrada": 0.1818,
+    "departamento_enc": 0.1194,
+    "cultivo_enc": 0.4719,
+    "grupo_cultivo_enc": 0.254,
+    "area_sembrada": 0.1547,
     "anio": 0.0,
     "periodo_num": 0.0
   },
   "model_path": "/app/models/rendimiento_model.pkl",
-  "trained_at": "2026-06-22T22:51:48.880014+00:00"
+  "trained_at": "2026-06-23T22:26:07.333969+00:00"
 }
