@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 const STATS = [
-  { value: 32, suffix: "M", label: "Hectáreas agrícolas en Colombia" },
-  { value: 78, suffix: "%", label: "Municipios con riesgo climático" },
-  { value: 12, suffix: "M", label: "Familias rurales afectadas" },
-  { value: 4, suffix: "x", label: "Más rápido que modelos tradicionales" },
+  { value: 145, suffix: "k+", label: "Evaluaciones agropecuarias EVA" },
+  { value: 32,  suffix: "",   label: "Departamentos con datos reales" },
+  { value: 12,  suffix: "k+", label: "Registros únicos de entrenamiento ML" },
+  { value: 5,   suffix: "",   label: "Fuentes de datos abiertos integradas" },
 ];
 
 const FEATURES = [
@@ -14,7 +14,7 @@ const FEATURES = [
     icon: "🌦",
     tag: "01",
     title: "Predicción de Riesgo",
-    desc: "Modelos ML entrenados con datos IDEAM, NASA POWER y OpenWeather para anticipar sequías, inundaciones y heladas con días de anticipación.",
+    desc: "Modelos ML entrenados con datos EVA, NASA POWER y OpenWeather para anticipar sequías, inundaciones y heladas con días de anticipación.",
     color: "#dcfce7",
     accent: "#16a34a",
   },
@@ -30,17 +30,17 @@ const FEATURES = [
     icon: "🔔",
     tag: "03",
     title: "Alertas Inteligentes",
-    desc: "Notificaciones automáticas para comunidades rurales y entes gubernamentales antes de que ocurran los eventos críticos.",
+    desc: "Notificaciones automáticas ante sequía, inundación, helada y estrés térmico basadas en datos NASA POWER en tiempo real.",
     color: "#fef9c3",
     accent: "#ca8a04",
   },
   {
-    icon: "📊",
+    icon: "🌊",
     tag: "04",
-    title: "Datos Abiertos",
-    desc: "Integración con datos.gov.co, DANE, IDEAM y APIs internacionales para garantizar transparencia total y trazabilidad.",
-    color: "#fce7f3",
-    accent: "#db2777",
+    title: "Monitor ENSO",
+    desc: "Índice ONI real de NOAA/CPC. Escenarios El Niño / La Niña con impacto estimado por cultivo y departamento.",
+    color: "#ede9fe",
+    accent: "#7c3aed",
   },
 ];
 
@@ -132,7 +132,7 @@ export default function LandingPage() {
           letter-spacing: 0.06em; padding: 0.15rem 0.45rem;
           border-radius: 4px;
         }
-        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links { display: flex; gap: 2rem; list-style: none; align-items: center; }
         .nav-links a { font-size: 0.85rem; color: var(--ink2); text-decoration: none; transition: color 0.2s; }
         .nav-links a:hover { color: var(--ink); }
         .nav-cta {
@@ -216,10 +216,10 @@ export default function LandingPage() {
           text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 6px;
           white-space: nowrap;
         }
-        .rc { background:#fee2e2; color:#dc2626; }
-        .rh { background:#ffedd5; color:#ea580c; }
-        .rm { background:#fef9c3; color:#ca8a04; }
-        .rl { background:#dcfce7; color:#16a34a; }
+        .rc{background:#fee2e2;color:#dc2626}
+        .rh{background:#ffedd5;color:#ea580c}
+        .rm{background:#fef9c3;color:#ca8a04}
+        .rl{background:#dcfce7;color:#16a34a}
         .rname { font-weight: 500; font-size: 0.875rem; flex: 1; }
         .rtype { font-size: 0.72rem; color: var(--muted); }
         .rconf { font-family: var(--ff-mono); font-size: 0.68rem; color: var(--muted); }
@@ -338,9 +338,10 @@ export default function LandingPage() {
         }
       `}</style>
 
+      {/* ── NAV ── */}
       <nav className={scrolled ? "scrolled" : ""}>
         <a href="#" className="nav-logo">
-          IA Colombia <span className="nav-badge">BETA</span>
+          AgroVision <span className="nav-badge">AI</span>
         </a>
         <ul className="nav-links">
           <li><a href="#features">Módulos</a></li>
@@ -350,14 +351,15 @@ export default function LandingPage() {
         <a href="/dashboard" className="nav-cta">Abrir Dashboard →</a>
       </nav>
 
+      {/* ── HERO ── */}
       <div style={{ maxWidth: 1400, margin: "0 auto" }}>
         <div className="hero">
           <div>
             <div className="hero-eyebrow">Plataforma IA · Colombia 2026</div>
             <h1>Datos que<br /><em>protegen</em><br />el campo</h1>
             <p className="hero-desc">
-              Inteligencia artificial aplicada a la agricultura y el desarrollo sostenible.
-              Predicción de riesgos climáticos con datos abiertos del territorio colombiano.
+              Inteligencia artificial aplicada a la agricultura y el clima colombiano.
+              Predicción de riesgos, alertas automáticas y escenarios ENSO con datos abiertos reales.
             </p>
             <div className="hero-actions">
               <a href="/dashboard" className="btn-primary">Ver Dashboard →</a>
@@ -371,11 +373,11 @@ export default function LandingPage() {
               <span className="visual-label">panel de riesgos · en vivo</span>
             </div>
             {[
-              { region:"La Guajira", type:"Sequía",      lvl:"rc", label:"crítico", conf:"92%" },
-              { region:"Chocó",      type:"Inundación",  lvl:"rh", label:"alto",    conf:"87%" },
-              { region:"Córdoba",    type:"Inundación",  lvl:"rh", label:"alto",    conf:"81%" },
-              { region:"Antioquia",  type:"Sequía",      lvl:"rm", label:"medio",   conf:"74%" },
-              { region:"Cundinamarca",type:"Helada",     lvl:"rl", label:"bajo",    conf:"61%" },
+              { region:"La Guajira",   type:"Sequía",     lvl:"rc", label:"crítico", conf:"92%" },
+              { region:"Chocó",        type:"Inundación", lvl:"rh", label:"alto",    conf:"87%" },
+              { region:"Córdoba",      type:"Inundación", lvl:"rh", label:"alto",    conf:"81%" },
+              { region:"Antioquia",    type:"Sequía",     lvl:"rm", label:"medio",   conf:"74%" },
+              { region:"Cundinamarca", type:"Helada",     lvl:"rl", label:"bajo",    conf:"61%" },
             ].map(r => (
               <div key={r.region} className="risk-row">
                 <span className={`rbadge ${r.lvl}`}>{r.label}</span>
@@ -388,12 +390,13 @@ export default function LandingPage() {
             ))}
             <div className="visual-foot">
               <div className="ldot"/>
-              Actualizado hace 2 min · IDEAM + OpenWeather
+              Actualizado hace 2 min · NASA POWER + OpenWeather
             </div>
           </div>
         </div>
       </div>
 
+      {/* ── STATS ── */}
       <div className="stats-strip">
         <div className="stats-inner">
           {STATS.map(s => (
@@ -405,15 +408,16 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── FEATURES ── */}
       <div className="fw" id="features">
         <div className="sw">
           <div className="fheader">
             <div>
               <div className="eyebrow">Módulos</div>
-              <h2>Todo lo que necesita una plataforma de riesgo climático</h2>
+              <h2>Todo lo que necesita una plataforma de inteligencia agroclimática</h2>
             </div>
             <p className="sdesc">
-              Cuatro módulos integrados que cubren el ciclo completo: datos → análisis → predicción → acción.
+              Ocho módulos integrados que cubren el ciclo completo: datos abiertos → análisis → predicción ML → acción.
             </p>
           </div>
           <div className="fgrid">
@@ -431,16 +435,17 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── STACK ── */}
       <div id="stack">
         <div className="sw">
           <div className="eyebrow">Tecnología</div>
           <h2>Stack moderno,<br />arquitectura sólida</h2>
           <div className="sgrid">
             {[
-              { layer:"Frontend", name:"Next.js",  pills:["TypeScript","TailwindCSS","Recharts","Leaflet"] },
-              { layer:"Backend",  name:"NestJS",   pills:["Prisma ORM","PostgreSQL","JWT Auth","Swagger"] },
-              { layer:"IA",       name:"FastAPI",  pills:["Scikit-learn","Pandas","NumPy","Python 3.11"] },
-              { layer:"DevOps",   name:"Docker",   pills:["Compose","PostgreSQL 16","GitHub CI"] },
+              { layer:"Frontend",        name:"Next.js",  pills:["TypeScript","TailwindCSS","Recharts","Leaflet"] },
+              { layer:"Backend",         name:"NestJS",   pills:["Prisma ORM","PostgreSQL","JWT Auth","Swagger"] },
+              { layer:"IA / Datos",      name:"FastAPI",  pills:["Random Forest","Pandas","NumPy","asyncpg"] },
+              { layer:"Infraestructura", name:"Docker",   pills:["Compose","PostgreSQL 16","Cache TTL","5 servicios"] },
             ].map(s => (
               <div key={s.name} className="scard">
                 <div className="slayer">{s.layer}</div>
@@ -452,19 +457,23 @@ export default function LandingPage() {
         </div>
       </div>
 
-      <div className="ctaw">
-        <div className="ctaglow"/>
-        <h2>Explora el <em>mapa</em><br />de riesgos de Colombia</h2>
-        <p className="ctasub" style={{marginTop:"1rem"}}>
-          Visualiza en tiempo real los riesgos climáticos de cada región del país.
-        </p>
-        <a href="/dashboard" className="btnw">Abrir Dashboard completo →</a>
+      {/* ── CTA ── */}
+      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+        <div className="ctaw">
+          <div className="ctaglow"/>
+          <h2>Explora el <em>dashboard</em><br />de AgroVision AI</h2>
+          <p className="ctasub" style={{marginTop:"1rem"}}>
+            Clima · EVA · ENSO · Alertas · Predicción ML · Escenarios IA
+          </p>
+          <a href="/dashboard" className="btnw">Abrir Dashboard completo →</a>
+        </div>
       </div>
 
+      {/* ── FOOTER ── */}
       <footer>
-        <div className="flogo">IA <span>Colombia</span></div>
+        <div className="flogo">Agro<span>Vision</span> AI</div>
         <div className="schip">Sistemas operativos</div>
-        <div className="fcopy">© 2026 · Datos abiertos · Hecho en Colombia 🇨🇴</div>
+        <div className="fcopy">© 2026 · Datos al Ecosistema 2026 · Hecho en Colombia 🇨🇴</div>
       </footer>
     </>
   );
