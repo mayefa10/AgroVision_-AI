@@ -1,4 +1,4 @@
-"""AgroVision AI — Cliente NASA POWER."""
+"""AgroVision AI — Cliente NASA POWER con cache PostgreSQL."""
 from __future__ import annotations
 
 import logging
@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.config.constants import NASA_ANNUAL_URL, NASA_DAILY_URL
+from app.infrastructure.persistence.postgres_client import get_or_fetch
 from .base_client import BaseHttpClient
 
 logger = logging.getLogger(__name__)
@@ -31,8 +32,25 @@ class NasaClient(BaseHttpClient):
         days: int = 30,
         departamento: Optional[str] = None,
     ) -> dict:
-        """Datos diarios de los últimos `days` días."""
-        end = datetime.now(timezone.utc)
+        """Datos diarios con cache PostgreSQL TTL 6h."""
+        cache_key = f"nasa:daily:{departamento or f'{lat},{lng}'}:{days}d"
+
+        return await get_or_fetch(
+            cache_key=cache_key,
+            source="nasa",
+            category="CLIMA",
+            fetch_fn=lambda: self._fetch_daily_real(lat, lng, days, departamento),
+        )
+
+    async def _fetch_daily_real(
+        self,
+        lat: float,
+        lng: float,
+        days: int,
+        departamento: Optional[str],
+    ) -> dict:
+        """Llamada real a la API de NASA POWER."""
+        end   = datetime.now(timezone.utc)
         start = end - timedelta(days=days)
 
         params = {
@@ -57,12 +75,12 @@ class NasaClient(BaseHttpClient):
         dates   = list(props.get("T2M", {}).keys())
         records = [
             {
-                "fecha":          d,
-                "temperatura":    round(props["T2M"].get(d, 0), 2),
-                "precipitacion":  round(props.get("PRECTOTCORR", {}).get(d, 0), 2),
-                "humedad":        round(props.get("RH2M", {}).get(d, 0), 2),
-                "radiacion_solar":round(props.get("ALLSKY_SFC_SW_DWN", {}).get(d, 0), 2),
-                "viento":         round(props.get("WS2M", {}).get(d, 0), 2),
+                "fecha":           d,
+                "temperatura":     round(props["T2M"].get(d, 0), 2),
+                "precipitacion":   round(props.get("PRECTOTCORR", {}).get(d, 0), 2),
+                "humedad":         round(props.get("RH2M", {}).get(d, 0), 2),
+                "radiacion_solar": round(props.get("ALLSKY_SFC_SW_DWN", {}).get(d, 0), 2),
+                "viento":          round(props.get("WS2M", {}).get(d, 0), 2),
             }
             for d in dates
         ]
@@ -100,7 +118,23 @@ class NasaClient(BaseHttpClient):
         anio: int,
         departamento: Optional[str] = None,
     ) -> dict:
-        """Promedio anual para un año específico."""
+        """Promedio anual con cache PostgreSQL TTL 24h."""
+        cache_key = f"nasa:annual:{departamento or f'{lat},{lng}'}:{anio}"
+
+        return await get_or_fetch(
+            cache_key=cache_key,
+            source="nasa",
+            category="CLIMA",
+            fetch_fn=lambda: self._fetch_annual_real(lat, lng, anio, departamento),
+        )
+
+    async def _fetch_annual_real(
+        self,
+        lat: float,
+        lng: float,
+        anio: int,
+        departamento: Optional[str],
+    ) -> dict:
         params = {
             "parameters": NASA_PARAMS_ANNUAL,
             "community":  "AG",
@@ -121,10 +155,10 @@ class NasaClient(BaseHttpClient):
             return vals[0] if vals else None
 
         return {
-            "departamento":  departamento,
-            "anio":          anio,
-            "temp_promedio": first_val("T2M"),
-            "precipitacion": first_val("PRECTOTCORR"),
-            "humedad":       first_val("RH2M"),
+            "departamento":    departamento,
+            "anio":            anio,
+            "temp_promedio":   first_val("T2M"),
+            "precipitacion":   first_val("PRECTOTCORR"),
+            "humedad":         first_val("RH2M"),
             "radiacion_solar": first_val("ALLSKY_SFC_SW_DWN"),
         }

@@ -16,12 +16,12 @@ from app.api.routers import (
     ml_router,
     predictions_router,
 )
-from app.config.logging_config import setup_logging
-from app.config.settings import get_settings
-from app.infrastructure.cache.redis_client import get_cache
 from app.api.routers.enso        import enso_router
 from app.api.routers.openweather import openweather_router
 from app.api.routers.escenarios  import escenarios_router
+from app.config.logging_config import setup_logging
+from app.config.settings import get_settings
+from app.infrastructure.cache.redis_client import get_cache
 from app.infrastructure.persistence.postgres_client import close_pool
 
 
@@ -33,7 +33,6 @@ async def lifespan(app: FastAPI):
     cache = get_cache()
     await cache.connect()
     yield
-    """await cache.close()"""
     await close_pool()
 
 
@@ -55,7 +54,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Registrar todos los routers
+    # ── Routers base ──────────────────────────────────────
     for router in [
         health_router,
         predictions_router,
@@ -67,8 +66,10 @@ def create_app() -> FastAPI:
         etl_router,
     ]:
         app.include_router(router)
-        app.include_router(enso_router)
-        app.include_router(openweather_router)
-        app.include_router(escenarios_router)
+
+    # ── Routers nuevos (fuera del loop — 1 vez cada uno) ─
+    app.include_router(enso_router)
+    app.include_router(openweather_router)
+    app.include_router(escenarios_router)
 
     return app

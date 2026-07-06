@@ -11,7 +11,6 @@ import pandas as pd
 
 from app.config.constants import ENCODERS_PATH, MODEL_PATH
 from app.domain.enums import YieldLevel
-from app.domain.models import YieldPrediction
 from app.ml.features.engineering import prepare_features
 from app.ml.models.random_forest import AgroRandomForest
 
@@ -22,7 +21,6 @@ logger = logging.getLogger(__name__)
 def load_model_cached() -> tuple[Optional[AgroRandomForest], Optional[dict]]:
     """
     Carga modelo y encoders desde disco UNA sola vez.
-    lru_cache garantiza que requests posteriores no toquen disco.
     Se invalida llamando a load_model_cached.cache_clear().
     """
     if not os.path.exists(MODEL_PATH):
@@ -41,22 +39,22 @@ def load_model_cached() -> tuple[Optional[AgroRandomForest], Optional[dict]]:
 
 
 def _classify_yield(pred: float) -> YieldLevel:
-    if pred > 15:
-        return YieldLevel.EXCELENTE
-    if pred > 8:
-        return YieldLevel.BUENO
-    if pred > 4:
-        return YieldLevel.REGULAR
+    if pred > 15: return YieldLevel.EXCELENTE
+    if pred > 8:  return YieldLevel.BUENO
+    if pred > 4:  return YieldLevel.REGULAR
     return YieldLevel.BAJO
 
 
 def predict_rendimiento(
-    departamento: str,
-    cultivo: str,
-    grupo_cultivo: str,
-    area_sembrada: float,
-    anio: int,
-    periodo: int = 0,
+    departamento:   str,
+    cultivo:        str,
+    grupo_cultivo:  str,
+    area_sembrada:  float,
+    anio:           int,
+    periodo:        int = 0,
+    # Nuevas variables opcionales (v2 — 12 features)
+    municipio:      str   = "DESCONOCIDO",
+    area_cosechada: Optional[float] = None,
 ) -> dict:
     """
     Predice rendimiento (t/ha) para un cultivo/región.
@@ -70,11 +68,16 @@ def predict_rendimiento(
             "message": "Modelo no entrenado. Llama a POST /ml/train primero.",
         }
 
+    # Si no se provee area_cosechada, usar area_sembrada como proxy
+    area_cos = area_cosechada if area_cosechada is not None else area_sembrada
+
     input_df = pd.DataFrame([{
         "departamento":  departamento.upper(),
         "cultivo":       cultivo.upper(),
         "grupo_cultivo": grupo_cultivo.upper(),
+        "municipio":     municipio.upper(),
         "area_sembrada": area_sembrada,
+        "area_cosechada": area_cos,
         "anio":          anio,
         "periodo_num":   periodo,
     }])
