@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { NAV_ITEMS } from "@/lib/constants";
+import Link from "next/link";
 
 interface SidebarProps {
   active: string;
@@ -76,10 +77,10 @@ export function Sidebar({ active, onNav }: SidebarProps) {
             width: 32, height: 32, borderRadius: 8, background: "#16a34a",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem",
           }}>🌾</div>
-          <div>
+          <Link href="/">
             <div style={{ fontSize: "0.9rem", fontWeight: 700, letterSpacing: "-0.02em" }}>AgroVision</div>
             <div style={{ fontSize: "0.65rem", fontFamily: "monospace", color: "#a1a1aa" }}>AI Platform</div>
-          </div>
+          </Link>
         </div>
 
         {/* Nav */}

@@ -1,0 +1,74 @@
+# Arquitectura e integración de fuentes — AgroVision AI
+
+## Diagrama de arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     FUENTES DE DATOS ABIERTAS                    │
+├──────────┬──────────────┬────────────┬─────────────┬────────────┤
+│   EVA    │  NASA POWER  │  NOAA/CPC  │ OpenWeather │    DANE    │
+│datos.gov │  API LARC    │  ONI Index │  API REST   │ DIVIPOLA   │
+└────┬─────┴──────┬───────┴─────┬──────┴──────┬──────┴─────┬──────┘
+     │            │             │             │            │
+     └────────────┴─────────────┴─────────────┴────────────┘
+                                │
+                  ┌─────────────▼─────────────┐
+                  │    FastAPI — ai-services   │
+                  │  ┌─────────────────────┐  │
+                  │  │   Clientes HTTP      │  │
+                  │  │ EvaClient           │  │
+                  │  │ NasaClient          │  │
+                  │  │ NoaaClient          │  │
+                  │  │ WeatherClient       │  │
+                  │  │ DaneClient          │  │
+                  │  └────────┬────────────┘  │
+                  │           │               │
+                  │  ┌────────▼────────────┐  │
+                  │  │  Cache PostgreSQL   │  │
+                  │  │  TTL por fuente     │  │
+                  │  │  EVA: 24h           │  │
+                  │  │  NASA: 6h           │  │
+                  │  │  OW: 1h             │  │
+                  │  └────────┬────────────┘  │
+                  │           │               │
+                  │  ┌────────▼────────────┐  │
+                  │  │  Modelo ML          │  │
+                  │  │  Random Forest      │  │
+                  │  │  12 features        │  │
+                  │  │  MAE: 2.93 t/ha     │  │
+                  │  │  R²: 0.697          │  │
+                  │  └─────────────────────┘  │
+                  └─────────────┬─────────────┘
+                                │ REST API
+                  ┌─────────────▼─────────────┐
+                  │   Next.js — Dashboard      │
+                  │   8 módulos especializados  │
+                  └───────────────────────────┘
+```
+
+## Integración de fuentes
+
+| Fuente | Endpoint | Método | Frecuencia cache |
+|--------|----------|--------|-----------------|
+| EVA (datos.gov.co) | `GET /resource/uejq-wxrr.json` | SoQL | 24h |
+| NASA POWER | `https://power.larc.nasa.gov/api/temporal/daily` | REST | 6h |
+| NOAA/CPC | `https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt` | Texto plano | 12h |
+| OpenWeather | `https://api.openweathermap.org/data/2.5/weather` | REST | 1h |
+| DANE DIVIPOLA | `GET /resource/gdxc-w37w.json` | SoQL | 24h |
+
+## Patrón cache-aside
+
+```
+Request → PostgreSQL (hit?) → Sí → Retornar cache
+                           → No → API Externa → Guardar → Retornar
+```
+
+## Contenedores Docker
+
+| Servicio | Puerto | Descripción |
+|---------|--------|-------------|
+| ai-service | 8000 | FastAPI + ML |
+| frontend | 3000 | Next.js dashboard |
+| backend | 4001 | NestJS auth |
+| postgres | 5433 | PostgreSQL 16 |
+| pgadmin | 5050 | Admin BD |
