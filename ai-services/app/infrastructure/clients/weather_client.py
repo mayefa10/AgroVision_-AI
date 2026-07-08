@@ -1,4 +1,4 @@
-"""AgroVision AI — Cliente OpenWeather."""
+"""AgroVision AI — Cliente OpenWeather con cache PostgreSQL."""
 from __future__ import annotations
 
 import logging
@@ -7,6 +7,7 @@ from typing import Optional
 
 from app.config.constants import OPENWEATHER_URL
 from app.config.settings import get_settings
+from app.infrastructure.persistence.postgres_client import get_or_fetch
 from .base_client import BaseHttpClient
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,22 @@ class WeatherClient(BaseHttpClient):
         ciudad: str,
         departamento: Optional[str] = None,
     ) -> dict:
+        """Clima actual con cache PostgreSQL TTL 1h."""
+        cache_key = f"openweather:{(departamento or ciudad).upper()}"
+
+        return await get_or_fetch(
+            cache_key=cache_key,
+            source="openweather",
+            category="CLIMA",
+            fetch_fn=lambda: self._fetch_current_real(ciudad, departamento),
+        )
+
+    async def _fetch_current_real(
+        self,
+        ciudad: str,
+        departamento: Optional[str],
+    ) -> dict:
+        """Llamada real a la API de OpenWeather."""
         api_key = self._api_key()
         if not api_key:
             return {

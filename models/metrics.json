@@ -3,16 +3,22 @@
   "registros_entrenamiento": 9741,
   "registros_test": 2436,
   "registros_totales": 12177,
-  "mae": 3.415,
-  "r2": 0.604,
+  "mae": 2.931,
+  "r2": 0.697,
   "feature_importance": {
-    "departamento_enc": 0.1194,
-    "cultivo_enc": 0.4719,
-    "grupo_cultivo_enc": 0.254,
-    "area_sembrada": 0.1547,
+    "departamento_enc": 0.0184,
+    "cultivo_enc": 0.0169,
+    "grupo_cultivo_enc": 0.005,
+    "area_sembrada": 0.0359,
     "anio": 0.0,
-    "periodo_num": 0.0
+    "periodo_num": 0.0,
+    "municipio_enc": 0.0596,
+    "area_cosechada": 0.0341,
+    "ratio_cosecha": 0.0201,
+    "rendimiento_hist_prom": 0.8101,
+    "oni_index": 0.0,
+    "riesgo_climatico_enc": 0.0
   },
   "model_path": "/app/models/rendimiento_model.pkl",
-  "trained_at": "2026-06-27T22:42:53.202520+00:00"
+  "trained_at": "2026-07-08T00:21:36.119582+00:00"
 }
