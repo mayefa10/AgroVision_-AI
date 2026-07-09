@@ -12,6 +12,8 @@ Pasos:
   7. encode_categoricas()       → OneHot ≤N únicos, Label >N únicos
   8. escalar_numericas()        → StandardScaler / MinMaxScaler / none
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import json

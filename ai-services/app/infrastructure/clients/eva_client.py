@@ -1,4 +1,6 @@
 """AgroVision AI — Cliente EVA (datos.gov.co) con cache PostgreSQL."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import logging

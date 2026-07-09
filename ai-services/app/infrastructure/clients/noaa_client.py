@@ -4,6 +4,8 @@ Obtiene el Oceanic Niño Index (ONI) desde NOAA/CPC.
 URL: https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt
 Formato: texto plano — NO JSON.
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import logging

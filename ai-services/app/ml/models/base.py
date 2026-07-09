@@ -1,4 +1,6 @@
 """AgroVision AI — Clase base para modelos ML."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

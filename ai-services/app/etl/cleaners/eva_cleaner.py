@@ -5,6 +5,8 @@ NOTA: el renombrado de columnas (a_o → anio, rea_sembrada → area_sembrada, e
 se hace en EvaClient._normalizar_df() antes de llegar aquí.
 Este módulo asume que el DataFrame ya viene con los nombres canónicos.
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import logging

@@ -1,4 +1,6 @@
 """AgroVision AI — Servicio de alertas agroclimáticas."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import asyncio

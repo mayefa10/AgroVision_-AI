@@ -1,4 +1,6 @@
 """AgroVision AI — Servicio de cálculo de riesgo climático."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import numpy as np

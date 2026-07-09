@@ -1,4 +1,5 @@
 """AgroVision AI — Factory de la aplicación FastAPI."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
 from __future__ import annotations
 
 from contextlib import asynccontextmanager

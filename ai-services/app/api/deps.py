@@ -1,4 +1,5 @@
 """AgroVision AI — Dependencias de FastAPI (Depends)."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
 from __future__ import annotations
 
 from app.config.settings import Settings, get_settings

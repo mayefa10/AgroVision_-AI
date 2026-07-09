@@ -3,6 +3,8 @@ AgroVision AI — Modelos de dominio.
 Representaciones internas de los datos (no Pydantic, no ORM).
 Usadas por los servicios para pasar datos entre capas.
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

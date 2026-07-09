@@ -2,6 +2,8 @@
 AgroVision AI — Constantes globales.
 Fuente única de verdad para datos geográficos, umbrales y endpoints.
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 # ── URLs y datasets ───────────────────────────────────────

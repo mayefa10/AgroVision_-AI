@@ -1,4 +1,6 @@
 """AgroVision AI — Loader de CSVs procesados."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import pandas as pd

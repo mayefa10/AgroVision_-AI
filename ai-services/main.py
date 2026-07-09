@@ -4,6 +4,8 @@ Punto de entrada único: crea la app y arranca uvicorn.
 Los módulos legacy (alertas.py, data_pipeline.py, etc.) se mantienen
 como referencia pero toda la lógica vive en app/.
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import os

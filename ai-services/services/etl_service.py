@@ -1,4 +1,6 @@
 """AgroVision AI — Servicio ETL."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 from datetime import datetime

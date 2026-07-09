@@ -12,6 +12,8 @@ v2: Ampliado a 12 features para cumplir requisito nivel intermedio (10-20 variab
     - oni_index             (índice ENSO — conecta clima global con rendimiento)
     - riesgo_climatico_enc  (categoría ENSO codificada)
 """
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 import logging

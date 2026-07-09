@@ -1,4 +1,6 @@
 """AgroVision AI — Servicio ML (fachada)."""
+# Copyright (C) 2026 July Mayerly Quintero Farfán
+
 from __future__ import annotations
 
 from app.ml.inference.predictor import model_is_trained, predict_rendimiento
