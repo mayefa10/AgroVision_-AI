@@ -1,5 +1,4 @@
 services:
-
   postgres:
     image: postgres:16-alpine
     container_name: agrovision_db
@@ -9,11 +8,11 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: agrovision
     ports:
-      - '5433:5432'
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +30,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - '5050:80'
+      - "5050:80"
     networks:
       - agrovision_net
 
@@ -42,13 +41,14 @@ services:
     container_name: agrovision_ai
     restart: unless-stopped
     ports:
-      - '8000:8000'
+      - "8000:8000"
     env_file:
-      - ./ai-services/.env.example 
+      - ./ai-services/.env.example
     environment:
       ENV: production
       PORT: 8000
-      
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agrovision # ← agregar
+
     volumes:
       - ./datasets:/app/datasets
       - ./models:/app/models
@@ -65,7 +65,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - '4001:4000'
+      - "4001:4000"
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -85,18 +85,19 @@ services:
     depends_on:
       - backend
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:4000
       NEXT_PUBLIC_AI_SERVICE_URL: http://localhost:8000
       NEXT_PUBLIC_APP_NAME: AgroVision AI
     networks:
       - agrovision_net
-      
+    volumes:
+     - ./frontend/public:/app/public   # ← agregar esta línea  
 
 volumes:
   postgres_data:
-
+  
 networks:
   agrovision_net:
     driver: bridge
