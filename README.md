@@ -251,11 +251,12 @@ La presentación oficial del proyecto para el concurso está disponible en la ca
 
 ## 👤 Autora
 
-**Mayerly Quintero Farfán**
+**July Quintero**
 ID 31 July · Concurso Datos al Ecosistema 2026 · Ministerio TIC
 
 ---
 
 ## 📜 Licencia
 
-MIT License · Datos abiertos · Hecho en Colombia 🇨🇴
+GNU AFFERO GENERAL PUBLIC LICENSE - Hecho en Colombia
+Version 3, 19 November 2007
