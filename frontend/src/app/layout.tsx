@@ -26,6 +26,12 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   title: "AgroVision AI Platform",
   description: "Dashboard agroclimático con IA",
+
+   icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
