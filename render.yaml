@@ -13,9 +13,7 @@ services:
       - key: PORT
         value: 4000
       - key: DATABASE_URL
-        fromDatabase:
-          name: agrovision-db
-          property: connectionString
+        sync: false   # ingresar manualmente: connection string de Neon
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
@@ -38,13 +36,7 @@ services:
       - key: PORT
         value: 8000
       - key: DATABASE_URL
-        fromDatabase:
-          name: agrovision-db
-          property: connectionString
+        sync: false   # ingresar manualmente: connection string de Neon
       - key: OPENWEATHER_API_KEY
-        sync: false   # lo ingresas manualmente en el dashboard de Render
-    disk:
-      name: models
-      mountPath: /app/models
-      sizeGB: 1
+        sync: false   # ingresar manualmente en el dashboard de Render
     healthCheckPath: /health

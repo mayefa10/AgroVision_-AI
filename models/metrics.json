@@ -20,5 +20,5 @@
     "riesgo_climatico_enc": 0.0
   },
   "model_path": "/app/models/rendimiento_model.pkl",
-  "trained_at": "2026-07-08T00:21:36.119582+00:00"
+  "trained_at": "2026-07-17T02:16:54.695755+00:00"
 }
